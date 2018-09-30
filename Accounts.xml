@@ -1,0 +1,25 @@
+<Accounts>
+    <Account Name = "Senpai">
+        <Passwords>
+            <Password>hmmm</Password>
+            <Password>perveredkouhai</Password>
+            <Password>baka</Password>
+        </Passwords>
+    </Account>
+    <Account Name = "Kouhai">
+        <Passwords>
+            <Password>Senpai</Password>
+            <Password>be_gentle</Password>
+            <Password>pervermefully</Password>
+        </Passwords>
+    </Account>
+    <Account Name = "user">
+        <Passwords>
+            <Password>ghfgh</Password>
+            <Password>2123</Password>
+            <Password>675</Password>
+            <Password>53477</Password>
+            <Password>6h75</Password>
+        </Passwords>
+    </Account>
+</Accounts>
