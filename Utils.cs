@@ -1,10 +1,19 @@
 using System;
 using System.IO;
+using System.Net.Sockets;
+using System.Text;
 
 namespace ZIKM{
     class Logger{
         public static void ToLog(string text){
-            
+            Console.WriteLine(DateTime.Now.ToShortTimeString() + $": {text}");
+        }
+    }
+
+    static class Sender{
+        public static void SendResponse(string message, NetworkStream stream){
+            var data = Encoding.UTF8.GetBytes(message);
+            stream.Write(data, 0, data.Length);
         }
     }
 

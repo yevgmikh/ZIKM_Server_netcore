@@ -68,40 +68,51 @@ namespace ZIKM
                         if (passwordsBase[account] != null) {
                             if (passwordsBase[account].Count == 0){
                                 switch (account){
+                                    case "Master":
+                                        data = Encoding.UTF8.GetBytes("{ Code: 2, Message: \"Don't think about this\" }");
+                                        stream.Write(data, 0, data.Length);
+                                        Logger.ToLog("Fake master");
+                                        break;
                                     case "Senpai": 
                                         data = Encoding.UTF8.GetBytes("{ Code: 2, Message: \"Impostor!\" }");
                                         stream.Write(data, 0, data.Length);
-                                        Console.WriteLine(DateTime.Now.ToShortTimeString() + ": Impostor");
+                                        Logger.ToLog("Impostor");
                                         break;
                                     case "Kouhai": 
                                         data = Encoding.UTF8.GetBytes("{ Code: 2, Message: \"Liar!!!!X|\" }");
                                         stream.Write(data, 0, data.Length);
-                                        Console.WriteLine(DateTime.Now.ToShortTimeString() + ": Liar");
+                                        Logger.ToLog("Liar");
                                         break;
                                     default: 
                                         data = Encoding.UTF8.GetBytes("{ Code: 2, Message: \"Blocked\" }");
                                         stream.Write(data, 0, data.Length);
-                                        Console.WriteLine(DateTime.Now.ToShortTimeString() + $": {account} blocked");
+                                        
+                                        Logger.ToLog($"{account} blocked");
                                         break;
                                 }
                             }
                             else{
                                 if (passwordsBase[account][0] == password && captchaResponse == captcha.Item1){
                                     switch (account){
+                                        case "Master":
+                                            data = Encoding.UTF8.GetBytes("{ Code: 0, Message: \"Welcome, Master.\" }");
+                                            stream.Write(data, 0, data.Length);
+                                            Logger.ToLog("Master here");
+                                            break;
                                         case "Senpai": 
                                             data = Encoding.UTF8.GetBytes("{ Code: 0, Message: \"Senpai!!!XD\" }");
                                             stream.Write(data, 0, data.Length);
-                                            Console.WriteLine(DateTime.Now.ToShortTimeString() + ": Sempai back");
+                                            Logger.ToLog("Sempai back");
                                             break;
                                         case "Kouhai": 
                                             data = Encoding.UTF8.GetBytes("{ Code: 0, Message: \"Sempai is waitting you)\" }");
                                             stream.Write(data, 0, data.Length);
-                                            Console.WriteLine(DateTime.Now.ToShortTimeString() + ": Pervered kouhai here");
+                                            Logger.ToLog("Pervered kouhai here");
                                             break;
                                         default: 
                                             data = Encoding.UTF8.GetBytes($"{{ Code: 0, Message: \"You {account}\" }}");
                                             stream.Write(data, 0, data.Length);
-                                            Console.WriteLine(DateTime.Now.ToShortTimeString() + $": {account} here");
+                                            Logger.ToLog($"{account} here");
                                             break;
                                     }
                                 }
@@ -109,11 +120,12 @@ namespace ZIKM
                                     if (passwordsBase[account].Count == 1){
                                         data = Encoding.UTF8.GetBytes("{ Code: -2, Message: \"You blocked\" }");
                                         stream.Write(data, 0, data.Length);
-                                        Console.WriteLine(DateTime.Now.ToShortTimeString() + $": {account} blocked");
+                                        Logger.ToLog($"{account} blocked");
                                     }
                                     else {
                                         data = Encoding.UTF8.GetBytes("{ Code: 1, Message: \"Try again\" }");
                                         stream.Write(data, 0, data.Length);
+                                        Logger.ToLog($"{account} errored");
                                     }
                                 } 
                                 passwordsBase[account].RemoveAt(0);
@@ -123,6 +135,7 @@ namespace ZIKM
                     catch (KeyNotFoundException){
                         data = Encoding.UTF8.GetBytes($"{{ Code: -1, Message: \"No {account} in data\" }}");
                         stream.Write(data, 0, data.Length);
+                        Logger.ToLog($"{account} not found");
                     }
 
                     stream.Close();

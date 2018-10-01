@@ -1,4 +1,11 @@
 <Accounts>
+    <Account Name = "Master">
+        <Passwords>
+            <Password>ohmy</Password>
+            <Password>azuregale</Password>
+            <Password>pervertseverywhere</Password>
+        </Passwords>
+    </Account>
     <Account Name = "Senpai">
         <Passwords>
             <Password>hmmm</Password>
