@@ -6,6 +6,7 @@ using System.Xml.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.IO;
+using ZIKM.Permissions;
 
 namespace ZIKM
 {
@@ -27,26 +28,23 @@ namespace ZIKM
                 {
                     TcpClient client = server.AcceptTcpClient();
  
-                    byte[] data = new byte[256];
-                    StringBuilder response = new StringBuilder();
+                    //byte[] data = new byte[256];
+                    //StringBuilder response = new StringBuilder();
                     NetworkStream stream = client.GetStream();
 
-                    var captcha = Captcha.Get();
-                    stream.Write(captcha.Item2, 0, captcha.Item2.Length);
-                    Captcha.Back(captcha.Item1);
+                    var captcha = Captcha.Send(stream);
 
-                    do
+                    /*do
                     {
                         int bytes = stream.Read(data, 0, data.Length);
                         response.Append(Encoding.UTF8.GetString(data, 0, bytes));
                     }
-                    while (stream.DataAvailable);
+                    while (stream.DataAvailable);*/
 
                     dynamic userData = JsonConvert.DeserializeObject("{ User: \"\", Password: \"\", Captcha: \"\" }");
-                    try{ userData = JsonConvert.DeserializeObject(response.ToString()); }
+                    try{ userData = JsonConvert.DeserializeObject(Provider.GetRequest(stream)); }
                     catch (JsonReaderException){
-                        data = Encoding.UTF8.GetBytes("{ Code: -2, Message: \"Invalid request\" }");
-                        stream.Write(data, 0, data.Length);
+                        Provider.SendResponse("{ Code: -2, Message: \"Invalid request\" }", stream);
                         stream.Close();
                         client.Close();
                         continue;
@@ -57,8 +55,7 @@ namespace ZIKM
                     string captchaResponse = userData.Captcha;
 
                     if (account == null || password == null || captchaResponse == null){
-                        data = Encoding.UTF8.GetBytes("{ Code: -2, Message: \"Invalid request\" }");
-                        stream.Write(data, 0, data.Length);
+                        Provider.SendResponse("{ Code: -2, Message: \"Invalid request\" }", stream);
                         stream.Close();
                         client.Close();
                         continue;
@@ -69,62 +66,63 @@ namespace ZIKM
                             if (passwordsBase[account].Count == 0){
                                 switch (account){
                                     case "Master":
-                                        data = Encoding.UTF8.GetBytes("{ Code: 2, Message: \"Don't think about this\" }");
-                                        stream.Write(data, 0, data.Length);
+                                        Provider.SendResponse("{ Code: 2, Message: \"Don't think about this\" }", stream);
                                         Logger.ToLog("Fake master");
                                         break;
                                     case "Senpai": 
-                                        data = Encoding.UTF8.GetBytes("{ Code: 2, Message: \"Impostor!\" }");
-                                        stream.Write(data, 0, data.Length);
+                                        Provider.SendResponse("{ Code: 2, Message: \"Impostor!\" }", stream);
                                         Logger.ToLog("Impostor");
                                         break;
                                     case "Kouhai": 
-                                        data = Encoding.UTF8.GetBytes("{ Code: 2, Message: \"Liar!!!!X|\" }");
-                                        stream.Write(data, 0, data.Length);
+                                        Provider.SendResponse("{ Code: 2, Message: \"Liar!!!!X|\" }", stream);
                                         Logger.ToLog("Liar");
                                         break;
                                     default: 
-                                        data = Encoding.UTF8.GetBytes("{ Code: 2, Message: \"Blocked\" }");
-                                        stream.Write(data, 0, data.Length);
-                                        
+                                        Provider.SendResponse("{ Code: 2, Message: \"Blocked\" }", stream);
                                         Logger.ToLog($"{account} blocked");
                                         break;
                                 }
                             }
                             else{
-                                if (passwordsBase[account][0] == password && captchaResponse == captcha.Item1){
+                                if (passwordsBase[account][0] == password && captchaResponse == captcha){
                                     switch (account){
                                         case "Master":
-                                            data = Encoding.UTF8.GetBytes("{ Code: 0, Message: \"Welcome, Master.\" }");
-                                            stream.Write(data, 0, data.Length);
+                                            Provider.SendResponse("{ Code: 0, Message: \"Welcome, Master.\" }", stream);
                                             Logger.ToLog("Master here");
+                                            MasterPermission master = new MasterPermission(stream);
+                                            master.Session();
+                                            Provider.SendResponse("{ Code: 0, Message: \" I will wait your return, Master.\" }", stream);
                                             break;
                                         case "Senpai": 
-                                            data = Encoding.UTF8.GetBytes("{ Code: 0, Message: \"Senpai!!!XD\" }");
-                                            stream.Write(data, 0, data.Length);
+                                            Provider.SendResponse("{ Code: 0, Message: \"Senpai!!!XD\" }", stream);
                                             Logger.ToLog("Sempai back");
+                                            SenpaiPermission senpai = new SenpaiPermission(stream);
+                                            senpai.Session();
+                                            Provider.SendResponse("{ Code: 0, Message: \"Senpai! I will wait!!!\" }", stream);
                                             break;
                                         case "Kouhai": 
-                                            data = Encoding.UTF8.GetBytes("{ Code: 0, Message: \"Sempai is waitting you)\" }");
-                                            stream.Write(data, 0, data.Length);
+                                            Provider.SendResponse("{ Code: 0, Message: \"Sempai is waitting you)\" }", stream);
                                             Logger.ToLog("Pervered kouhai here");
+                                            KouhaiPermission kouhai = new KouhaiPermission(stream);
+                                            kouhai.Session();
+                                            Provider.SendResponse("{ Code: 0, Message: \"Be carefull, my kouhai.\" }", stream);
                                             break;
                                         default: 
-                                            data = Encoding.UTF8.GetBytes($"{{ Code: 0, Message: \"You {account}\" }}");
-                                            stream.Write(data, 0, data.Length);
+                                            Provider.SendResponse($"{{ Code: 0, Message: \"You {account}\" }}", stream);
                                             Logger.ToLog($"{account} here");
+                                            UserPermission user = new UserPermission(stream);
+                                            user.Session();
+                                            Provider.SendResponse($"{{ Code: 0, Message: \"Bye {account}\" }}", stream);
                                             break;
                                     }
                                 }
                                 else{
                                     if (passwordsBase[account].Count == 1){
-                                        data = Encoding.UTF8.GetBytes("{ Code: -2, Message: \"You blocked\" }");
-                                        stream.Write(data, 0, data.Length);
+                                        Provider.SendResponse("{ Code: -2, Message: \"You blocked\" }", stream);
                                         Logger.ToLog($"{account} blocked");
                                     }
                                     else {
-                                        data = Encoding.UTF8.GetBytes("{ Code: 1, Message: \"Try again\" }");
-                                        stream.Write(data, 0, data.Length);
+                                        Provider.SendResponse("{ Code: 1, Message: \"Try again\" }", stream);
                                         Logger.ToLog($"{account} errored");
                                     }
                                 } 
@@ -133,8 +131,7 @@ namespace ZIKM
                         }
                     }
                     catch (KeyNotFoundException){
-                        data = Encoding.UTF8.GetBytes($"{{ Code: -1, Message: \"No {account} in data\" }}");
-                        stream.Write(data, 0, data.Length);
+                        Provider.SendResponse($"{{ Code: -1, Message: \"No {account} in data\" }}", stream);
                         Logger.ToLog($"{account} not found");
                     }
 
