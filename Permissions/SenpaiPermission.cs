@@ -12,7 +12,8 @@ namespace ZIKM.Permissions{
                 dynamic userData = JsonConvert.DeserializeObject("{ SessionId: \"\", Operation: \"\", Property: \"\" }");
                 try{ userData = JsonConvert.DeserializeObject(Provider.GetRequest(_stream)); }
                 catch (JsonReaderException){
-                    Provider.SendResponse($"{{ SessionId: \"{sessionid}\" Code: -2, Message: \"Invalid request\" }}", _stream);
+                    Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -2, Message: \"Invalid request\" }}", _stream);
+                    Logger.ToLogAll("Invalid request");
                     continue;
                 }
                 string response = "";
@@ -22,15 +23,13 @@ namespace ZIKM.Permissions{
                 switch(operation){
                     case Operation.GetFiles:
                         var files = Directory.GetFiles(_path);
-                        OnlyNames(ref files, true);
-                        response = $"{{ SessionId: \"{sessionid}\" Code: 0, Message: \"{ToProperty(files)}\" }}";
+                        response = $"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"{ToProperty(OnlyNames(files, true))}\" }}";
                         break;
 
 
                     case Operation.GetFolders:
                         var directories = Directory.GetDirectories(_path);
-                        OnlyNames(ref directories, false);
-                        response = $"{{ SessionId: \"{sessionid}\" Code: 0, Message: \"{ToProperty(directories)}\" }}";
+                        response = $"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"{ToProperty(OnlyNames(directories, false))}\" }}";
                         break;
 
 
@@ -39,28 +38,29 @@ namespace ZIKM.Permissions{
                             string property = userData.Property;
                             if (IsHave(Directory.GetFiles(_path), property)) {
                                 FileChange(property, code, 3);
-                                response = $"{{ SessionId: \"{sessionid}\" Code: 0, Message: \"File {property} closed\" }}";
+                                response = $"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"File {property} closed\" }}";
                             }
-                            else response = $"{{ SessionId: \"{sessionid}\" Code: 1, Message: \"File not found\" }}";
+                            else response = $"{{ SessionId: \"{sessionid}\", Code: 1, Message: \"File not found\" }}";
                         }
-                        else response = $"{{ SessionId: \"{sessionid}\" Code: 1, Message: \"Here no files\" }}";
+                        else response = $"{{ SessionId: \"{sessionid}\", Code: 1, Message: \"Here no files\" }}";
                         break;
 
 
                     case Operation.OpenFolder:
                         if (code == 0){
-                            if (IsCorrect(userData.Property)){
+                            int property = userData.Property;
+                            if (IsCorrect(property)){
                                 int prop = userData.Property;
                                 if (prop > 1){
                                     _path += $"/{prop}";
                                     code = prop;
-                                    response = $"{{ SessionId: \"{sessionid}\" Code: 0, Message: \"Folder {prop} opened\" }}";
+                                    response = $"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"Folder {prop} opened\" }}";
                                 }
-                                else response = $"{{ SessionId: \"{sessionid}\" Code: 2, Message: \"Not enough rights\" }}";
+                                else response = $"{{ SessionId: \"{sessionid}\", Code: 2, Message: \"Not enough rights\" }}";
                             }
-                            else response = $"{{ SessionId: \"{sessionid}\" Code: 1, Message: \"Here no this folder\" }}";
+                            else response = $"{{ SessionId: \"{sessionid}\", Code: 1, Message: \"Here no this folder\" }}";
                         }
-                        else response = $"{{ SessionId: \"{sessionid}\" Code: 1, Message: \"Here no folders\" }}";
+                        else response = $"{{ SessionId: \"{sessionid}\", Code: 1, Message: \"Here no folders\" }}";
                         break;
 
 
@@ -68,14 +68,20 @@ namespace ZIKM.Permissions{
                         if (code != 0){
                             _path.Substring(0, _path.Length - 2);
                             code = 0;
-                            response = $"{{ SessionId: \"{sessionid}\" Code: 0, Message: \"Folder closed\" }}";
+                            response = $"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"Folder closed\" }}";
                         }
-                        else response = $"{{ SessionId: \"{sessionid}\" Code: 1, Message: \"You in home directory\" }}";
+                        else response = $"{{ SessionId: \"{sessionid}\", Code: 1, Message: \"You in home directory\" }}";
                         break;
 
 
                     case Operation.End:
                         end = true;
+                        break;
+
+                        
+                    default:
+                        Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -1, Message: \"Invalid operation\" }}", _stream);
+                        Logger.ToLogAll("Invalid operation");
                         break;
                     
                 }

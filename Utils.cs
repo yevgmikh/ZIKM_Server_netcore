@@ -6,22 +6,39 @@ using System.Text;
 namespace ZIKM{
     class Logger{
         public static void ToLog(string text){
+            using (StreamWriter writer = new StreamWriter("/home/yevgeniy/C#/ZIKM/Logs/LogSuccsess.log", true)) 
+                writer.WriteLine(DateTime.Now.ToString() + $": {text}");
+            ToLogAll(text);
+        }
+
+        public static void ToLogAll(string text){
             Console.WriteLine(DateTime.Now.ToShortTimeString() + $": {text}");
+            using (StreamWriter writer = new StreamWriter("/home/yevgeniy/C#/ZIKM/Logs/LogAll.log", true)) 
+                writer.WriteLine(DateTime.Now.ToString() + $": {text}");
+        }
+
+        public static void ToLogProvider (string text) {
+            using (StreamWriter writer = new StreamWriter("/home/yevgeniy/C#/ZIKM/Logs/LogProvider.log", true)) 
+                writer.WriteLine(DateTime.Now.ToString() + $": {text}");
         }
     }
 
     static class Provider{
-        static byte[] _data = new byte[256];
-        static StringBuilder _response = new StringBuilder();
+        static byte[] _data;
+        static StringBuilder _response;
 
         public static void SendResponse(string message, NetworkStream stream){
             _data = Encoding.UTF8.GetBytes(message);
             stream.Write(_data, 0, _data.Length);
+            Logger.ToLogProvider(message);
         }
 
         public static string GetRequest(NetworkStream stream){
+            _data = new byte[100000];
+            _response = new StringBuilder();
             int bytes = stream.Read(_data, 0, _data.Length);
             _response.Append(Encoding.UTF8.GetString(_data, 0, bytes));
+            Logger.ToLogProvider(_response.ToString());
             return _response.ToString();
         }
     }
@@ -31,7 +48,7 @@ namespace ZIKM{
         public static string Send(NetworkStream stream){
             string[] files = Directory.GetFiles(_path);
             var random = new Random();
-            var fileInfo = new FileInfo($"{_path}/{files[random.Next(0, files.Length)]}");
+            var fileInfo = new FileInfo(files[random.Next(0, files.Length)]);
             string captcha = fileInfo.Name.Substring(0,5);
             File.Move($"{_path}/{fileInfo.Name}" ,"/home/yevgeniy/C#/ZIKM/captcha.jpg");
             var data = File.ReadAllBytes("/home/yevgeniy/C#/ZIKM/captcha.jpg");
@@ -39,14 +56,6 @@ namespace ZIKM{
             File.Move("/home/yevgeniy/C#/ZIKM/captcha.jpg", $"{_path}/{captcha}.jpg");
             return captcha;
         }
-    }
-
-    enum PermissionCode{
-        Zero = 0,
-        User = 1,
-        Kouhai,
-        Senpai,
-        Master
     }
 
     enum Operation{

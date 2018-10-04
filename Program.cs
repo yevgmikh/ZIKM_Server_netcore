@@ -11,12 +11,12 @@ using ZIKM.Permissions;
 namespace ZIKM
 {
     class Program{
-        static int port = 8005;
+        static int port = 8000;
         static void Main(string[] args){
             TcpListener server=null;
             try
             {
-                IPAddress localAddr = IPAddress.Parse("127.0.0.1");
+                IPAddress localAddr = IPAddress.Parse("192.168.31.19");
                 server = new TcpListener(localAddr, port);
                 var passwordsBase = GetPasswords();
  
@@ -45,6 +45,7 @@ namespace ZIKM
                     try{ userData = JsonConvert.DeserializeObject(Provider.GetRequest(stream)); }
                     catch (JsonReaderException){
                         Provider.SendResponse("{ Code: -2, Message: \"Invalid request\" }", stream);
+                        Logger.ToLogAll("Invalid request");
                         stream.Close();
                         client.Close();
                         continue;
@@ -56,6 +57,7 @@ namespace ZIKM
 
                     if (account == null || password == null || captchaResponse == null){
                         Provider.SendResponse("{ Code: -2, Message: \"Invalid request\" }", stream);
+                        Logger.ToLogAll("Invalid request");
                         stream.Close();
                         client.Close();
                         continue;
@@ -67,19 +69,19 @@ namespace ZIKM
                                 switch (account){
                                     case "Master":
                                         Provider.SendResponse("{ Code: 2, Message: \"Don't think about this\" }", stream);
-                                        Logger.ToLog("Fake master");
+                                        Logger.ToLogAll("Fake master");
                                         break;
                                     case "Senpai": 
                                         Provider.SendResponse("{ Code: 2, Message: \"Impostor!\" }", stream);
-                                        Logger.ToLog("Impostor");
+                                        Logger.ToLogAll("Impostor");
                                         break;
                                     case "Kouhai": 
                                         Provider.SendResponse("{ Code: 2, Message: \"Liar!!!!X|\" }", stream);
-                                        Logger.ToLog("Liar");
+                                        Logger.ToLogAll("Liar");
                                         break;
                                     default: 
                                         Provider.SendResponse("{ Code: 2, Message: \"Blocked\" }", stream);
-                                        Logger.ToLog($"{account} blocked");
+                                        Logger.ToLogAll($"{account} blocked");
                                         break;
                                 }
                             }
@@ -92,6 +94,7 @@ namespace ZIKM
                                             MasterPermission master = new MasterPermission(stream);
                                             master.Session();
                                             Provider.SendResponse("{ Code: 0, Message: \" I will wait your return, Master.\" }", stream);
+                                            Logger.ToLog("Master gone");
                                             break;
                                         case "Senpai": 
                                             Provider.SendResponse("{ Code: 0, Message: \"Senpai!!!XD\" }", stream);
@@ -99,6 +102,7 @@ namespace ZIKM
                                             SenpaiPermission senpai = new SenpaiPermission(stream);
                                             senpai.Session();
                                             Provider.SendResponse("{ Code: 0, Message: \"Senpai! I will wait!!!\" }", stream);
+                                            Logger.ToLog("Sempai gone");
                                             break;
                                         case "Kouhai": 
                                             Provider.SendResponse("{ Code: 0, Message: \"Sempai is waitting you)\" }", stream);
@@ -106,6 +110,7 @@ namespace ZIKM
                                             KouhaiPermission kouhai = new KouhaiPermission(stream);
                                             kouhai.Session();
                                             Provider.SendResponse("{ Code: 0, Message: \"Be carefull, my kouhai.\" }", stream);
+                                            Logger.ToLog("Pervered kouhai gone");
                                             break;
                                         default: 
                                             Provider.SendResponse($"{{ Code: 0, Message: \"You {account}\" }}", stream);
@@ -113,17 +118,18 @@ namespace ZIKM
                                             UserPermission user = new UserPermission(stream);
                                             user.Session();
                                             Provider.SendResponse($"{{ Code: 0, Message: \"Bye {account}\" }}", stream);
+                                            Logger.ToLog($"{account} disconnect");
                                             break;
                                     }
                                 }
                                 else{
                                     if (passwordsBase[account].Count == 1){
                                         Provider.SendResponse("{ Code: -2, Message: \"You blocked\" }", stream);
-                                        Logger.ToLog($"{account} blocked");
+                                        Logger.ToLogAll($"{account} blocked");
                                     }
                                     else {
                                         Provider.SendResponse("{ Code: 1, Message: \"Try again\" }", stream);
-                                        Logger.ToLog($"{account} errored");
+                                        Logger.ToLogAll($"{account} errored");
                                     }
                                 } 
                                 passwordsBase[account].RemoveAt(0);
@@ -132,7 +138,7 @@ namespace ZIKM
                     }
                     catch (KeyNotFoundException){
                         Provider.SendResponse($"{{ Code: -1, Message: \"No {account} in data\" }}", stream);
-                        Logger.ToLog($"{account} not found");
+                        Logger.ToLogAll($"{account} not found");
                     }
 
                     stream.Close();
