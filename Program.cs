@@ -87,35 +87,36 @@ namespace ZIKM
                             }
                             else{
                                 if (passwordsBase[account][0] == password && captchaResponse == captcha){
+                                    var guid = Guid.NewGuid().ToString();
                                     switch (account){
                                         case "Master":
-                                            Provider.SendResponse("{ Code: 0, Message: \"Welcome, Master.\" }", stream);
+                                            Provider.SendResponse($"{{ SessionId: \"{guid}\", Code: 0, Message: \"Welcome, Master.\" }}", stream);
                                             Logger.ToLog("Master here");
-                                            MasterPermission master = new MasterPermission(stream);
+                                            MasterPermission master = new MasterPermission(stream, guid);
                                             master.Session();
                                             Provider.SendResponse("{ Code: 0, Message: \" I will wait your return, Master.\" }", stream);
                                             Logger.ToLog("Master gone");
                                             break;
                                         case "Senpai": 
-                                            Provider.SendResponse("{ Code: 0, Message: \"Senpai!!!XD\" }", stream);
+                                            Provider.SendResponse($"{{ SessionId: \"{guid}\", Code: 0, Message: \"Senpai!!!XD\" }}", stream);
                                             Logger.ToLog("Sempai back");
-                                            SenpaiPermission senpai = new SenpaiPermission(stream);
+                                            SenpaiPermission senpai = new SenpaiPermission(stream, guid);
                                             senpai.Session();
                                             Provider.SendResponse("{ Code: 0, Message: \"Senpai! I will wait!!!\" }", stream);
                                             Logger.ToLog("Sempai gone");
                                             break;
                                         case "Kouhai": 
-                                            Provider.SendResponse("{ Code: 0, Message: \"Sempai is waitting you)\" }", stream);
+                                            Provider.SendResponse($"{{ SessionId: \"{guid}\", Code: 0, Message: \"Sempai is waitting you)\" }}", stream);
                                             Logger.ToLog("Pervered kouhai here");
-                                            KouhaiPermission kouhai = new KouhaiPermission(stream);
+                                            KouhaiPermission kouhai = new KouhaiPermission(stream, guid);
                                             kouhai.Session();
                                             Provider.SendResponse("{ Code: 0, Message: \"Be carefull, my kouhai.\" }", stream);
                                             Logger.ToLog("Pervered kouhai gone");
                                             break;
                                         default: 
-                                            Provider.SendResponse($"{{ Code: 0, Message: \"You {account}\" }}", stream);
+                                            Provider.SendResponse($"{{ SessionId: \"{guid}\", Code: 0, Message: \"You {account}\" }}", stream);
                                             Logger.ToLog($"{account} here");
-                                            UserPermission user = new UserPermission(stream);
+                                            UserPermission user = new UserPermission(stream, guid);
                                             user.Session();
                                             Provider.SendResponse($"{{ Code: 0, Message: \"Bye {account}\" }}", stream);
                                             Logger.ToLog($"{account} disconnect");

@@ -7,13 +7,17 @@ namespace ZIKM.Permissions{
     class Permissions{
         FileOperation fileCode = FileOperation.Error;
 
-        protected string sessionid = "1";
+        protected string sessionid;
         protected string _path = "/home/yevgeniy/C#/ZIKM/Data";
         protected int code = 0;
+        protected bool _end = false;
         protected Operation operation;
         protected NetworkStream _stream;
 
-        protected Permissions(NetworkStream stream) => _stream = stream;
+        protected Permissions(NetworkStream stream, string guid){
+            _stream = stream;
+            sessionid = guid;
+        }
 
         #region Helpers
         private void PermissionError() {
@@ -106,6 +110,9 @@ namespace ZIKM.Permissions{
                 fileCode = GetFileOperation(Operation);
 
                 bool ex = false;
+                string session = userData.SessionId;
+
+                if (session == sessionid)
                 switch (fileCode)
                 {
                     case FileOperation.Exit:
@@ -194,6 +201,12 @@ namespace ZIKM.Permissions{
                         Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -1, Message: \"Invalid operation\" }}", _stream);
                         Logger.ToLogAll("Invalid operation");
                         break;
+                }
+                else{
+                    Provider.SendResponse("{ Code: -3, Message: \"SessionID incorrect\" }", _stream);
+                    Logger.ToLogAll("SessionID incorrect");
+                    ex = true;
+                    _end = true;
                 }
                 if (ex) break;
             }

@@ -4,11 +4,10 @@ using Newtonsoft.Json;
 
 namespace ZIKM.Permissions{
     class MasterPermission: Permissions{
-        public MasterPermission(NetworkStream stream): base(stream) { code = 0; }
+        public MasterPermission(NetworkStream stream, string guid): base(stream, guid) { code = 0; }
 
         public void Session(){
             while(true){
-                bool end = false;
                 dynamic userData = JsonConvert.DeserializeObject("{ SessionId: \"\", Operation: \"\", Property: \"\" }");
                 try{ userData = JsonConvert.DeserializeObject(Provider.GetRequest(_stream)); }
                 catch (JsonReaderException){
@@ -19,7 +18,9 @@ namespace ZIKM.Permissions{
                 string response = "";
                 int op = userData.Operation;
                 operation = GetOperation(op);
+                string session = userData.SessionId;
 
+                if (session == sessionid)
                 switch(operation){
                     case Operation.GetFiles:
                         var files = Directory.GetFiles(_path);
@@ -75,17 +76,22 @@ namespace ZIKM.Permissions{
 
 
                     case Operation.End:
-                        end = true;
+                        _end = true;
                         break;
 
                         
                     default:
-                        Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -1, Message: \"Invalid operation\" }}", _stream);
+                        response = $"{{ SessionId: \"{sessionid}\", Code: -1, Message: \"Invalid operation\" }}";
                         Logger.ToLogAll("Invalid operation");
                         break;
                     
                 }
-                if (end) break;
+                else{
+                    Provider.SendResponse("{ Code: -3, Message: \"SessionID incorrect\" }", _stream);
+                    Logger.ToLogAll("SessionID incorrect");
+                    _end = true;
+                }
+                if (_end) break;
                 Provider.SendResponse(response, _stream);
             }
         }
