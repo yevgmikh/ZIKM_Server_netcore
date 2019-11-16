@@ -68,9 +68,9 @@ namespace ZIKM.Permissions{
         /// </summary>
         /// <param name="names">Names for pack</param>
         /// <returns>Packed names to string</returns>
-        protected string ToProperty(string[] names){
+        protected string ToProperty(IEnumerable<string> names){
             string pack ="";
-            foreach (var name in names) pack += $"{name} "; 
+            foreach (var name in names) pack += $"{name};"; 
             return pack;
         }
         #endregion
@@ -105,8 +105,8 @@ namespace ZIKM.Permissions{
                             // Check permisions
                             if ((Code + 1) == _level || Code == _level){
                                 try{
-                                    var texts = File.ReadAllLines(System.IO.Path.Combine(Path, $"{name}"));
-                                    Provider.SendResponse(new ResponseData(Sessionid, 0, $"{ToProperty(texts)}"));
+                                    var texts = File.ReadAllText(System.IO.Path.Combine(Path, $"{name}"));
+                                    Provider.SendResponse(new ResponseData(Sessionid, 0, $"{texts}"));
                                     Logger.ToLog($"File {name} read");
                                 }
                                 catch (Exception e){
@@ -217,12 +217,12 @@ namespace ZIKM.Permissions{
                 if (userData.SessionId == Sessionid){
                     switch ((MainOperation)userData.Operation){
                         case MainOperation.GetFiles:
-                            var files = Directory.EnumerateFiles(Path).ToArray();
+                            var files = Directory.GetFiles(Path).Select(i => new FileInfo(i).Name);
                             Provider.SendResponse(new ResponseData(Sessionid, 0, $"{ToProperty(files)}"));
                             break;
 
                         case MainOperation.GetFolders:
-                            var directories = Directory.EnumerateDirectories(Path).ToArray();
+                            var directories = Directory.GetDirectories(Path).Select(i => new DirectoryInfo(i).Name);
                             Provider.SendResponse(new ResponseData(Sessionid, 0, $"{ToProperty(directories)}"));
                             break;
 
@@ -230,7 +230,7 @@ namespace ZIKM.Permissions{
                             // Check is not root folder
                             if (Code != 0){
                                 // Check file name
-                                if (Directory.EnumerateFiles(Path).Contains(userData.Property)){
+                                if (Directory.GetFiles(Path).Select(i => new FileInfo(i).Name).Contains(userData.Property)){
                                     // Opening file, if incorrect sessionID inside, then close session here
                                     if (!FileChange(userData.Property))
                                         return;
@@ -250,7 +250,7 @@ namespace ZIKM.Permissions{
                             // Check is root folder
                             if (Path == _rootPath){ 
                                 // Check name folder
-                                if (Directory.EnumerateDirectories(Path).Contains(userData.Property)){ 
+                                if (Directory.GetDirectories(Path).Select(i => new DirectoryInfo(i).Name).Contains(userData.Property)){ 
                                     // Check permissions
                                     int code = _permissions[System.IO.Path.Combine(Path, userData.Property)];
                                     if (code >= _level - 1 && code <= _level + 1)
