@@ -1,4 +1,3 @@
-using System;
 using ZIKM.Infrastructure;
 using ZIKM.Interfaces;
 
@@ -18,22 +17,21 @@ namespace ZIKM.Permissions{
         /// Create simple client object
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
-        /// <param name="guid">Session ID</param>
+        /// <param name="permissions">Getting data about permissions</param>
         /// <param name="name">Name of user</param>
-        public UserPermission(IProvider provider, Guid guid, string name): base(provider, guid) {
+        public UserPermission(IProvider provider, IPermissionsLevel permissions, string name): base(provider, permissions, 1) {
             UserName = name;
             EndMessage = $"Bye {UserName}";
             EndLog = $"{UserName} disconnect";
-            code = 0; 
         }
 
         /// <summary>
         /// Start session for user
         /// </summary>
         public override void StartSession(){
-            _provider.SendResponse(new ResponseData(sessionid, 0, $"You {UserName}"));
+            Provider.SendResponse(new ResponseData(Sessionid, 0, $"You {UserName}"));
             Logger.ToLog($"{UserName} here");
-            Session(1);
+            Session();
         }
     }
 }

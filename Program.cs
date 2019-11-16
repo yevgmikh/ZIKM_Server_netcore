@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Xml.Linq;
 using System.Collections.Generic;
 using Newtonsoft.Json;
@@ -109,23 +108,23 @@ namespace ZIKM{
                         else{
                             if (passwordsBase[userData.User][0] == userData.Password && userData.Captcha == captchaCode){
                                 #region Successfull login
-                                var guid = Guid.NewGuid();
+                                IPermissionsLevel levels = new PermissionData();
                                 switch (userData.User)
                                 {
                                     case "Master":
-                                        MasterPermission master = new MasterPermission(provider, guid);
+                                        MasterPermission master = new MasterPermission(provider, levels);
                                         master.StartSession();
                                         break;
                                     case "Senpai":
-                                        SenpaiPermission senpai = new SenpaiPermission(provider, guid);
+                                        SenpaiPermission senpai = new SenpaiPermission(provider, levels);
                                         senpai.StartSession();
                                         break;
                                     case "Kouhai":
-                                        KouhaiPermission kouhai = new KouhaiPermission(provider, guid);
+                                        KouhaiPermission kouhai = new KouhaiPermission(provider, levels);
                                         kouhai.StartSession();
                                         break;
                                     default:
-                                        UserPermission user = new UserPermission(provider, guid, userData.User);
+                                        UserPermission user = new UserPermission(provider, levels, userData.User);
                                         user.StartSession();
                                         break;
                                 }

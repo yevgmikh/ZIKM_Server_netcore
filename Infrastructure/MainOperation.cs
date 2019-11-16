@@ -6,6 +6,6 @@
         OpenFile,
         OpenFolder,
         CloseFolder,
-        End
+        EndSession
     }
 }
