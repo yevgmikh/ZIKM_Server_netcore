@@ -12,15 +12,14 @@ using System.Threading.Tasks;
 
 namespace ZIKM{
     class Program{
-        static int port = 8000;
         static Dictionary<string, List<string>> passwordsBase;
 
         static void Main(string[] args){
             TcpListener server=null;
             try{
-                IPAddress localAddr = IPAddress.Parse("127.0.0.1");
-                server = new TcpListener(localAddr, port);
-                passwordsBase = GetPasswords();
+                IPAddress localAddr = IPAddress.Parse(GetLocalIPAddress());
+                server = new TcpListener(localAddr, 8000);
+                GetPasswords();
  
                 server.Start();
                 Console.WriteLine("Server started");
@@ -39,24 +38,32 @@ namespace ZIKM{
             }
         }
 
+        public static string GetLocalIPAddress(){
+            var host = Dns.GetHostEntry(Dns.GetHostName());
+            foreach (var ip in host.AddressList){
+                if (ip.AddressFamily == AddressFamily.InterNetwork){
+                    return ip.ToString();
+                }
+            }
+            throw new Exception("No network adapters with an IPv4 address in the system!");
+        }
+
         /// <summary>
-        /// Get users and passwords
+        /// Get users and passwords to password base
         /// </summary>
         /// <returns>List of users with passwords</returns>
-        private static Dictionary<string, List<string>> GetPasswords (){
-            var passwords = new Dictionary<string, List<string>>();
+        private static void GetPasswords(){
+            passwordsBase = new Dictionary<string, List<string>>();
             XDocument doc = XDocument.Load(Path.Combine(Directory.GetCurrentDirectory(), "Accounts.xml"));
             foreach (var acc in doc.Element("Accounts").Elements("Account")){
                 var user = new List<string>();
                 foreach (var pass in acc.Element("Passwords").Elements("Password")) user.Add(pass.Value);
-                passwords.Add(acc.Attribute("Name").Value, user);
-                //return passwords;
+                passwordsBase.Add(acc.Attribute("Name").Value, user);
             }
-            return passwords;
         }
 
         /// <summary>
-        /// Login and get session for client
+        /// Login and start session for client
         /// </summary>
         /// <param name="client"></param>
         private static void Process(TcpClient client){
@@ -80,73 +87,69 @@ namespace ZIKM{
                     return;
                 }
 
-                try{
-                    if (passwordsBase[userData.User] != null){
-                        if (passwordsBase[userData.User].Count == 0){
-                            #region User's spent all passwords
-                            switch (userData.User)
-                            {
+                if (passwordsBase.ContainsKey(userData.User)){
+                    if (passwordsBase[userData.User]?.Count == 0){
+                        #region User's spent all passwords
+                        switch (userData.User){
+                            case "Master":
+                                provider.SendResponse(new ResponseData(2, "Don't think about this"));
+                                Logger.ToLogAll("Fake master");
+                                break;
+                            case "Senpai":
+                                provider.SendResponse(new ResponseData(2, "Impostor!"));
+                                Logger.ToLogAll("Impostor");
+                                break;
+                            case "Kouhai":
+                                provider.SendResponse(new ResponseData(2, "Liar!!!!X|"));
+                                Logger.ToLogAll("Liar");
+                                break;
+                            default:
+                                provider.SendResponse(new ResponseData(2, "Blocked"));
+                                Logger.ToLogAll($"{userData.User} blocked");
+                                break;
+                        }
+                         #endregion
+                    }
+                    else{
+                        if (passwordsBase[userData.User][0] == userData.Password && userData.Captcha == captchaCode){
+                            #region Successfull login
+                                IPermissionsLevel levels = new PermissionData();
+                            switch (userData.User){
                                 case "Master":
-                                    provider.SendResponse(new ResponseData(2, "Don't think about this"));
-                                    Logger.ToLogAll("Fake master");
+                                    MasterPermission master = new MasterPermission(provider, levels);
+                                    master.StartSession();
                                     break;
                                 case "Senpai":
-                                    provider.SendResponse(new ResponseData(2, "Impostor!"));
-                                    Logger.ToLogAll("Impostor");
+                                    SenpaiPermission senpai = new SenpaiPermission(provider, levels);
+                                    senpai.StartSession();
                                     break;
                                 case "Kouhai":
-                                    provider.SendResponse(new ResponseData(2, "Liar!!!!X|"));
-                                    Logger.ToLogAll("Liar");
+                                    KouhaiPermission kouhai = new KouhaiPermission(provider, levels);
+                                    kouhai.StartSession();
                                     break;
                                 default:
-                                    provider.SendResponse(new ResponseData(2, "Blocked"));
-                                    Logger.ToLogAll($"{userData.User} blocked");
+                                    UserPermission user = new UserPermission(provider, levels, userData.User);
+                                    user.StartSession();
                                     break;
                             }
                             #endregion
                         }
                         else{
-                            if (passwordsBase[userData.User][0] == userData.Password && userData.Captcha == captchaCode){
-                                #region Successfull login
-                                IPermissionsLevel levels = new PermissionData();
-                                switch (userData.User)
-                                {
-                                    case "Master":
-                                        MasterPermission master = new MasterPermission(provider, levels);
-                                        master.StartSession();
-                                        break;
-                                    case "Senpai":
-                                        SenpaiPermission senpai = new SenpaiPermission(provider, levels);
-                                        senpai.StartSession();
-                                        break;
-                                    case "Kouhai":
-                                        KouhaiPermission kouhai = new KouhaiPermission(provider, levels);
-                                        kouhai.StartSession();
-                                        break;
-                                    default:
-                                        UserPermission user = new UserPermission(provider, levels, userData.User);
-                                        user.StartSession();
-                                        break;
-                                }
-                                #endregion
+                            if (passwordsBase[userData.User].Count == 1){
+                                // User's spent last password 
+                                provider.SendResponse(new ResponseData(-2, "You blocked"));
+                                Logger.ToLogAll($"{userData.User} blocked");
                             }
                             else{
-                                if (passwordsBase[userData.User].Count == 1){
-                                    // User's spent last password 
-                                    provider.SendResponse(new ResponseData(-2, "You blocked"));
-                                    Logger.ToLogAll($"{userData.User} blocked");
-                                }
-                                else{
-                                    // User's written wrong password
-                                    provider.SendResponse(new ResponseData(1, "Try again"));
-                                    Logger.ToLogAll($"{userData.User} errored");
-                                }
+                                // User's written wrong password
+                                provider.SendResponse(new ResponseData(1, "Try again"));
+                                Logger.ToLogAll($"{userData.User} errored");
                             }
-                            passwordsBase[userData.User].RemoveAt(0);
                         }
+                        passwordsBase[userData.User].RemoveAt(0);
                     }
                 }
-                catch (KeyNotFoundException){
+                else{
                     // No user in data
                     provider.SendResponse(new ResponseData(-1, $"No {userData.User} in data"));
                     Logger.ToLogAll($"{userData.User} not found");
