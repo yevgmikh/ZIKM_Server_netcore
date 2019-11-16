@@ -8,150 +8,33 @@ using Newtonsoft.Json;
 using System.IO;
 using ZIKM.Permissions;
 using ZIKM.Infrastructure;
+using ZIKM.Interfaces;
+using System.Threading.Tasks;
 
-namespace ZIKM
-{
+namespace ZIKM{
     class Program{
         static int port = 8000;
+        static Dictionary<string, List<string>> passwordsBase;
+
         static void Main(string[] args){
             TcpListener server=null;
-            try
-            {
+            try{
                 IPAddress localAddr = IPAddress.Parse("127.0.0.1");
                 server = new TcpListener(localAddr, port);
-                var passwordsBase = GetPasswords();
+                passwordsBase = GetPasswords();
  
-                // запуск слушателя
                 server.Start();
                 Console.WriteLine("Server started");
  
-                while (true)
-                {
+                while (true){
                     TcpClient client = server.AcceptTcpClient();
-                    NetworkStream stream = client.GetStream();
-                    Provider provider = new Provider(stream);
-
-                    var captcha = Captcha.Send(stream);
-
-                    // Read login request
-                    LoginData userData; //= JsonConvert.DeserializeObject<LoginData>("{ User: \"\", Password: \"\", Captcha: \"\" }");
-                    try{ 
-                        userData = JsonConvert.DeserializeObject<LoginData>(provider.GetRequest());
-                    }
-                    catch (JsonReaderException){
-                        provider.SendResponse(new ResponseData(-2, "Invalid request"));
-                        Logger.ToLogAll("Invalid request");
-                        stream.Close();
-                        client.Close();
-                        continue;
-                    }
-
-                    string account = userData.User;
-                    string password = userData.Password;
-                    string captchaResponse = userData.Captcha;
-
-                    if (account == null || password == null || captchaResponse == null){
-                        provider.SendResponse(new ResponseData(-2, "Invalid request"));
-                        Logger.ToLogAll("Invalid request");
-                        stream.Close();
-                        client.Close();
-                        continue;
-                    }
-
-                    try{
-                        if (passwordsBase[account] != null) {
-                            if (passwordsBase[account].Count == 0){
-                                // User spent all passwords
-                                switch (account){
-                                    case "Master":
-                                        provider.SendResponse(new ResponseData(2, "Don't think about this"));
-                                        Logger.ToLogAll("Fake master");
-                                        break;
-                                    case "Senpai":
-                                        provider.SendResponse(new ResponseData(2, "Impostor!"));
-                                        Logger.ToLogAll("Impostor");
-                                        break;
-                                    case "Kouhai":
-                                        provider.SendResponse(new ResponseData(2, "Liar!!!!X|"));
-                                        Logger.ToLogAll("Liar");
-                                        break;
-                                    default:
-                                        provider.SendResponse(new ResponseData(2, "Blocked"));
-                                        Logger.ToLogAll($"{account} blocked");
-                                        break;
-                                }
-                            }
-                            else{
-                                if (passwordsBase[account][0] == password && captchaResponse == captcha){
-                                    // Successful login
-                                    var guid = Guid.NewGuid();
-                                    switch (account){
-                                        case "Master":
-                                            provider.SendResponse(new ResponseData(guid, 0, "Welcome, Master."));
-                                            Logger.ToLog("Master here");
-                                            MasterPermission master = new MasterPermission(provider, guid);
-                                            master.StartSession();
-                                            provider.SendResponse(new ResponseData(guid, 0, "I will wait your return, Master."));
-                                            Logger.ToLog("Master gone");
-                                            break;
-                                        case "Senpai": 
-                                            provider.SendResponse(new ResponseData(guid, 0, "Senpai!!!XD"));
-                                            Logger.ToLog("Sempai back");
-                                            SenpaiPermission senpai = new SenpaiPermission(provider, guid);
-                                            senpai.StartSession();
-                                            provider.SendResponse(new ResponseData(guid, 0, "Senpai! I will wait!!!"));
-                                            Logger.ToLog("Sempai gone");
-                                            break;
-                                        case "Kouhai": 
-                                            provider.SendResponse(new ResponseData(guid, 0, "Sempai is waitting you)"));
-                                            Logger.ToLog("Pervered kouhai here");
-                                            KouhaiPermission kouhai = new KouhaiPermission(provider, guid);
-                                            kouhai.StartSession();
-                                            provider.SendResponse(new ResponseData(guid, 0, "Be carefull, my kouhai."));
-                                            Logger.ToLog("Pervered kouhai gone");
-                                            break;
-                                        default: 
-                                            provider.SendResponse(new ResponseData(guid, 0, $"You {account}"));
-                                            Logger.ToLog($"{account} here");
-                                            UserPermission user = new UserPermission(provider, guid);
-                                            user.StartSession();
-                                            provider.SendResponse(new ResponseData(guid, 0, $"Bye {account}"));
-                                            Logger.ToLog($"{account} disconnect");
-                                            break;
-                                    }
-                                }
-                                else{
-                                    if (passwordsBase[account].Count == 1){
-                                        // User's spent last password 
-                                        provider.SendResponse(new ResponseData(-2, "You blocked"));
-                                        Logger.ToLogAll($"{account} blocked");
-                                    }
-                                    else {
-                                        // User's written wrong password
-                                        provider.SendResponse(new ResponseData(1, "Try again"));
-                                        Logger.ToLogAll($"{account} errored");
-                                    }
-                                } 
-                                passwordsBase[account].RemoveAt(0);
-                            }
-                        }
-                    }
-                    catch (KeyNotFoundException){
-                        // No user in data
-                        provider.SendResponse(new ResponseData(-1, $"No {account} in data"));
-                        Logger.ToLogAll($"{account} not found");
-                    }
-
-                    stream.Close();
-                    client.Close();
+                    Task.Run(() => Process(client));
                 }
             }
-            catch (Exception e)
-            {
+            catch (Exception e){
                 Console.WriteLine(e.Message);
             }
-            finally
-            {
+            finally{
                 if (server != null)
                     server.Stop();
             }
@@ -171,6 +54,105 @@ namespace ZIKM
                 //return passwords;
             }
             return passwords;
+        }
+
+        /// <summary>
+        /// Login and get session for client
+        /// </summary>
+        /// <param name="client"></param>
+        private static void Process(TcpClient client){
+            using (IProvider provider = new TCPProvider(client)){
+                ICaptcha captcha = new PrimitiveCaptcha((TCPProvider)provider);
+                var captchaCode = captcha.SendCaptcha();
+
+                // Read login request
+                LoginData userData;
+                try{
+                    userData = provider.GetLoginRequest();
+                    if (userData.User == null || userData.Password == null || userData.Captcha == null){
+                        provider.SendResponse(new ResponseData(-2, "Invalid request"));
+                        Logger.ToLogAll("Invalid request");
+                        return;
+                    }
+                }
+                catch (JsonReaderException){
+                    provider.SendResponse(new ResponseData(-2, "Invalid request"));
+                    Logger.ToLogAll("Invalid request");
+                    return;
+                }
+
+                try{
+                    if (passwordsBase[userData.User] != null){
+                        if (passwordsBase[userData.User].Count == 0){
+                            #region User's spent all passwords
+                            switch (userData.User)
+                            {
+                                case "Master":
+                                    provider.SendResponse(new ResponseData(2, "Don't think about this"));
+                                    Logger.ToLogAll("Fake master");
+                                    break;
+                                case "Senpai":
+                                    provider.SendResponse(new ResponseData(2, "Impostor!"));
+                                    Logger.ToLogAll("Impostor");
+                                    break;
+                                case "Kouhai":
+                                    provider.SendResponse(new ResponseData(2, "Liar!!!!X|"));
+                                    Logger.ToLogAll("Liar");
+                                    break;
+                                default:
+                                    provider.SendResponse(new ResponseData(2, "Blocked"));
+                                    Logger.ToLogAll($"{userData.User} blocked");
+                                    break;
+                            }
+                            #endregion
+                        }
+                        else{
+                            if (passwordsBase[userData.User][0] == userData.Password && userData.Captcha == captchaCode){
+                                #region Successfull login
+                                var guid = Guid.NewGuid();
+                                switch (userData.User)
+                                {
+                                    case "Master":
+                                        MasterPermission master = new MasterPermission(provider, guid);
+                                        master.StartSession();
+                                        break;
+                                    case "Senpai":
+                                        SenpaiPermission senpai = new SenpaiPermission(provider, guid);
+                                        senpai.StartSession();
+                                        break;
+                                    case "Kouhai":
+                                        KouhaiPermission kouhai = new KouhaiPermission(provider, guid);
+                                        kouhai.StartSession();
+                                        break;
+                                    default:
+                                        UserPermission user = new UserPermission(provider, guid, userData.User);
+                                        user.StartSession();
+                                        break;
+                                }
+                                #endregion
+                            }
+                            else{
+                                if (passwordsBase[userData.User].Count == 1){
+                                    // User's spent last password 
+                                    provider.SendResponse(new ResponseData(-2, "You blocked"));
+                                    Logger.ToLogAll($"{userData.User} blocked");
+                                }
+                                else{
+                                    // User's written wrong password
+                                    provider.SendResponse(new ResponseData(1, "Try again"));
+                                    Logger.ToLogAll($"{userData.User} errored");
+                                }
+                            }
+                            passwordsBase[userData.User].RemoveAt(0);
+                        }
+                    }
+                }
+                catch (KeyNotFoundException){
+                    // No user in data
+                    provider.SendResponse(new ResponseData(-1, $"No {userData.User} in data"));
+                    Logger.ToLogAll($"{userData.User} not found");
+                }
+            }
         }
     }
 }

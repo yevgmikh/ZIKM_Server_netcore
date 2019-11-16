@@ -1,9 +1,6 @@
-﻿namespace ZIKM.Infrastructure
-{
-    struct LoginData
-    {
-        public LoginData(string user, string password, string captcha)
-        {
+﻿namespace ZIKM.Infrastructure{
+    public struct LoginData{
+        public LoginData(string user, string password, string captcha){
             User = user;
             Password = password;
             Captcha = captcha;

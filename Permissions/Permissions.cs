@@ -1,23 +1,37 @@
 using System;
 using System.IO;
-using System.Net.Sockets;
 using Newtonsoft.Json;
 using ZIKM.Infrastructure;
+using ZIKM.Interfaces;
 
 namespace ZIKM.Permissions{
-    abstract class Permissions{
+    abstract class Client{
         FileOperation fileCode = FileOperation.Error;
 
         protected Guid sessionid;
         protected string _path = Path.Combine(Directory.GetCurrentDirectory(), "Data");
         protected int code = 0;
         protected bool _end = false;
-        protected Operation operation;
-        protected Provider _provider;
+        protected MainOperation operation;
+        protected IProvider _provider;
 
-        protected Permissions(Provider stream, Guid guid){
-            _provider = stream;
-            sessionid = guid;
+        /// <summary>
+        /// Message when user disconnect
+        /// </summary>
+        protected abstract string EndMessage { get; set; }
+        /// <summary>
+        /// Log-data when user disconnect
+        /// </summary>
+        protected abstract string EndLog { get; set; }
+
+        /// <summary>
+        /// Create client object
+        /// </summary>
+        /// <param name="provider">Provider for sending data</param>
+        /// <param name="guid">Session ID</param>
+        protected Client(IProvider provider, Guid guid){
+            _provider = provider ?? throw new ArgumentNullException(nameof(provider));
+            sessionid = guid != Guid.Empty ? guid : throw new ArgumentNullException(nameof(guid));
         }
 
         #region Helpers
@@ -38,25 +52,6 @@ namespace ZIKM.Permissions{
                     return FileOperation.Edit;
                 default:
                     return FileOperation.Error;
-            }
-        }
-
-        protected Operation GetOperation(int number){
-            switch (number){
-                case 1:
-                    return Operation.GetFiles;
-                case 2:
-                    return Operation.GetFolders;
-                case 3:
-                    return Operation.OpenFile;
-                case 4:
-                    return Operation.OpenFolder;
-                case 5:
-                    return Operation.CloseFolder;
-                case 6:
-                    return Operation.End;
-                default:
-                    return Operation.Error;
             }
         }
 
@@ -92,38 +87,38 @@ namespace ZIKM.Permissions{
         }
         #endregion
 
-        protected void FileChange(string name, int perStatus, int perUser)
-        {
+        /// <summary>
+        /// Operation for changing files
+        /// </summary>
+        /// <param name="name">File name</param>
+        /// <param name="status">Permission status of file(opened folder)</param>
+        /// <param name="user">User's permission</param>
+        protected void FileChange(string name, int status, int user){
             _provider.SendResponse(new ResponseData(sessionid, 0, $"File {name} opened"));
             Logger.ToLog($"File {name} opened");
-            while (true)
-            {
+            while (true){
                 // Get request
-                RequestData userData; //= JsonConvert.DeserializeObject("{ SessionId: \"\", Operation: \"\", Property: \"\" }");
-                try{ userData = JsonConvert.DeserializeObject<RequestData>(_provider.GetRequest()); }
+                RequestData userData;
+                try{ 
+                    userData = _provider.GetRequest(); 
+                }
                 catch (JsonReaderException){
                     _provider.SendResponse(new ResponseData(-2, "Invalid request"));
                     Logger.ToLogAll("Invalid request");
                     continue;
                 }
 
-                int Operation = userData.Operation;
-                fileCode = GetFileOperation(Operation);
-
+                fileCode = (FileOperation)userData.Operation;
                 bool ex = false;
-                Guid session = userData.SessionId;
 
-                if (session == sessionid)
-                switch (fileCode)
-                {
+                if (userData.SessionId == sessionid)
+                switch (fileCode){
                     case FileOperation.Exit:
                         ex = true;
                         break;
                     case FileOperation.Read:
-                        if ((perStatus + 1) == perUser || perStatus == perUser)
-                        {
-                            try
-                            {
+                        if ((status + 1) == user || status == user){
+                            try{
                                 var texts = File.ReadAllLines($@"{_path}\{name}");
                                 ushort property = 0;
                                 if (property == 0) property = (ushort)texts.Length;
@@ -132,8 +127,7 @@ namespace ZIKM.Permissions{
                                 _provider.SendResponse(new ResponseData(sessionid, 0, $"{text}"));
                                 Logger.ToLog($"File {name} read");
                             }
-                            catch (Exception e)
-                            {
+                            catch (Exception e){
                                 _provider.SendResponse(new ResponseData(sessionid, 1, $"Errorr reading{e.Message}"));
                                 Logger.ToLogAll($"Error while {name} read, {e.Message}");
                             }
@@ -142,17 +136,14 @@ namespace ZIKM.Permissions{
                         else PermissionError();
                         break;
                     case FileOperation.Write:
-                        if ((perStatus - 1) == perUser || perStatus == perUser)
-                        {
-                            try
-                            {
+                        if ((status - 1) == user || status == user){
+                            try{
                                 string property = userData.Property;
                                 using (StreamWriter writer = new StreamWriter($@"{_path}\{name}", true)) writer.WriteLine(property);
                                 _provider.SendResponse(new ResponseData(sessionid, 0, "Successfully"));
                                 Logger.ToLog($"Writen to file {name}");
                             }
-                            catch (Exception e)
-                            {
+                            catch (Exception e){
                                 _provider.SendResponse(new ResponseData(sessionid, 1, $"Error writing{e.Message}"));
                                 Logger.ToLogAll($"Error while {name} write, {e.Message}");
                             }
@@ -160,15 +151,13 @@ namespace ZIKM.Permissions{
                         else PermissionError();
                         break;
                     case FileOperation.Edit:
-                        if (perStatus == perUser)
-                        {
-                            try
-                            {
+                        if (status == user){
+                            try{
                                 var text = File.ReadAllText($@"{_path}\{name}");
                                 _provider.SendResponse(new ResponseData(sessionid, 0, $"{text}"));
                                 while (true){
                                     try{ 
-                                        userData = JsonConvert.DeserializeObject<RequestData>(_provider.GetRequest()); 
+                                        userData = _provider.GetRequest(); 
                                         break;
                                     }
                                     catch (JsonReaderException){
@@ -177,8 +166,8 @@ namespace ZIKM.Permissions{
                                         continue;
                                     }
                                 }
-                                Operation = userData.Operation;
-                                if (Operation == 3)
+                                
+                                if (userData.Operation == 3)
                                 {
                                     string property = userData.Property;
                                     using (StreamWriter writer = new StreamWriter($@"{_path}\{name}", false)) writer.WriteLine(property);
@@ -190,8 +179,7 @@ namespace ZIKM.Permissions{
                                     Logger.ToLog($"File {name} no edited");
                                 }
                             }
-                            catch (Exception e)
-                            {
+                            catch (Exception e){
                                 _provider.SendResponse(new ResponseData(sessionid, 1, $"Error editing:{e.Message}"));
                                 Logger.ToLogAll($"Error while {name} edit, {e.Message}");
                             }
@@ -218,45 +206,39 @@ namespace ZIKM.Permissions{
         /// Get session for working with files
         /// </summary>
         /// <param name="permision">User rights level</param>
-        protected void Session(int permision)
-        {
-            while (true)
-            {
+        protected void Session(int permision){
+            while (true){
                 // Get request
-                RequestData userData; //= JsonConvert.DeserializeObject("{ SessionId: \"\", Operation: \"\", Property: \"\" }");
-                try { userData = JsonConvert.DeserializeObject<RequestData>(_provider.GetRequest()); }
-                catch (JsonReaderException)
-                {
+                RequestData userData;
+                try { 
+                    userData = _provider.GetRequest(); 
+                }
+                catch (JsonReaderException){
                     _provider.SendResponse(new ResponseData(-2, "Invalid request"));
                     Logger.ToLogAll("Invalid request");
                     continue;
                 }
                 ResponseData response = new ResponseData();
-                int op = userData.Operation;
-                operation = GetOperation(op);
-                Guid session = userData.SessionId;
+                //operation = GetOperation(userData.Operation);
 
-                if (session == sessionid)
-                    switch (operation)
-                    {
-                        case Operation.GetFiles:
+                if (userData.SessionId == sessionid)
+                    switch ((MainOperation)userData.Operation){
+                        case MainOperation.GetFiles:
                             var files = Directory.GetFiles(_path);
                             response = new ResponseData(sessionid, 0, $"{ToProperty(OnlyNames(files, true))}");
                             break;
 
 
-                        case Operation.GetFolders:
+                        case MainOperation.GetFolders:
                             var directories = Directory.GetDirectories(_path);
                             response = new ResponseData(sessionid, 0, $"{ToProperty(OnlyNames(directories, false))}");
                             break;
 
 
-                        case Operation.OpenFile:
-                            if (code != 0)
-                            {
+                        case MainOperation.OpenFile:
+                            if (code != 0){
                                 string property = userData.Property;
-                                if (IsHave(Directory.GetFiles(_path), property))
-                                {
+                                if (IsHave(Directory.GetFiles(_path), property)){
                                     FileChange(property, code, permision);
                                     response = new ResponseData(sessionid, 0, $"File {property} closed");
                                 }
@@ -266,16 +248,13 @@ namespace ZIKM.Permissions{
                             break;
 
 
-                        case Operation.OpenFolder:
-                            if (code == 0)
-                            {
+                        case MainOperation.OpenFolder:
+                            if (code == 0){
                                 int property = int.Parse(userData.Property);
-                                if (IsCorrect(property))
-                                {
+                                if (IsCorrect(property)){
                                     int prop = int.Parse(userData.Property);
-                                    if (prop <= permision - 1 && prop >= permision + 1)
-                                    {
-                                        _path += $"/{prop}";
+                                    if (prop <= permision - 1 && prop >= permision + 1){
+                                        _path = Path.Combine(_path, $"{prop}");
                                         code = prop;
                                         response = new ResponseData(sessionid, 0, $"Folder {prop} opened");
                                     }
@@ -287,9 +266,8 @@ namespace ZIKM.Permissions{
                             break;
 
 
-                        case Operation.CloseFolder:
-                            if (code != 0)
-                            {
+                        case MainOperation.CloseFolder:
+                            if (code != 0){
                                 _path.Substring(0, _path.Length - 2);
                                 code = 0;
                                 response = new ResponseData(sessionid, 0, "Folder closed");
@@ -298,7 +276,9 @@ namespace ZIKM.Permissions{
                             break;
 
 
-                        case Operation.End:
+                        case MainOperation.End:
+                            response = new ResponseData(sessionid, 0, EndMessage);
+                            Logger.ToLog(EndLog);
                             _end = true;
                             break;
 
@@ -309,8 +289,7 @@ namespace ZIKM.Permissions{
                             break;
 
                     }
-                else
-                {
+                else{
                     _provider.SendResponse(new ResponseData(-3, "SessionID incorrect"));
                     Logger.ToLogAll("SessionID incorrect");
                     _end = true;

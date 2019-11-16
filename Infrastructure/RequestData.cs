@@ -1,11 +1,8 @@
 ﻿using System;
 
-namespace ZIKM.Infrastructure
-{
-    struct RequestData
-    {
-        public RequestData(Guid sessionId, int operation, string property)
-        {
+namespace ZIKM.Infrastructure{
+    public struct RequestData{
+        public RequestData(Guid sessionId, int operation, string property){
             SessionId = sessionId;
             Operation = operation;
             Property = property;

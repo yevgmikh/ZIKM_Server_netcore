@@ -1,17 +1,13 @@
 ﻿using System;
 
-namespace ZIKM.Infrastructure
-{
-    struct ResponseData
-    {
-        public ResponseData(short code, string message) : this()
-        {
+namespace ZIKM.Infrastructure{
+    public struct ResponseData{
+        public ResponseData(short code, string message) : this(){
             Code = code;
             Message = message;
         }
 
-        public ResponseData(Guid sessionId, short code, string message)
-        {
+        public ResponseData(Guid sessionId, short code, string message){
             SessionId = sessionId;
             Code = code;
             Message = message;
