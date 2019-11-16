@@ -1,39 +1,48 @@
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Net.Sockets;
 using System.Text;
+using ZIKM.Infrastructure;
 
 namespace ZIKM{
     class Logger{
         public static void ToLog(string text){
-            using (StreamWriter writer = new StreamWriter("/home/yevgeniy/C#/ZIKM/Logs/LogSuccsess.log", true)) 
+            using (StreamWriter writer = new StreamWriter(Path.Combine(Directory.GetCurrentDirectory(), @"Logs\LogSuccsess.log"), true)) 
                 writer.WriteLine(DateTime.Now.ToString() + $": {text}");
             ToLogAll(text);
         }
 
         public static void ToLogAll(string text){
             Console.WriteLine(DateTime.Now.ToShortTimeString() + $": {text}");
-            using (StreamWriter writer = new StreamWriter("/home/yevgeniy/C#/ZIKM/Logs/LogAll.log", true)) 
+            using (StreamWriter writer = new StreamWriter(Path.Combine(Directory.GetCurrentDirectory(), @"Logs\LogAll.log"), true)) 
                 writer.WriteLine(DateTime.Now.ToString() + $": {text}");
         }
 
         public static void ToLogProvider (string text) {
-            using (StreamWriter writer = new StreamWriter("/home/yevgeniy/C#/ZIKM/Logs/LogProvider.log", true)) 
+            using (StreamWriter writer = new StreamWriter(Path.Combine(Directory.GetCurrentDirectory(), @"Logs\LogProvider.log"), true)) 
                 writer.WriteLine(DateTime.Now.ToString() + $": {text}");
         }
     }
 
-    static class Provider{
-        static byte[] _data;
-        static StringBuilder _response;
+    class Provider{
+        private byte[] _data;
+        private StringBuilder _response;
+        private readonly NetworkStream stream;
 
-        public static void SendResponse(string message, NetworkStream stream){
-            _data = Encoding.UTF8.GetBytes(message);
-            stream.Write(_data, 0, _data.Length);
-            Logger.ToLogProvider(message);
+        public Provider(NetworkStream stream)
+        {
+            this.stream = stream;
         }
 
-        public static string GetRequest(NetworkStream stream){
+        public void SendResponse(ResponseData response){
+            string JsonString = JsonConvert.SerializeObject(response);
+            _data = Encoding.UTF8.GetBytes(JsonString);
+            stream.Write(_data, 0, _data.Length);
+            Logger.ToLogProvider(JsonString);
+        }
+
+        public string GetRequest(){
             _data = new byte[100000];
             _response = new StringBuilder();
             int bytes = stream.Read(_data, 0, _data.Length);
@@ -44,16 +53,16 @@ namespace ZIKM{
     }
 
     static class Captcha{
-        private static string _path = "/home/yevgeniy/C#/ZIKM/Captchas";
+        private static string _path = Path.Combine(Directory.GetCurrentDirectory(), "Captchas");
         public static string Send(NetworkStream stream){
             string[] files = Directory.GetFiles(_path);
             var random = new Random();
             var fileInfo = new FileInfo(files[random.Next(0, files.Length)]);
             string captcha = fileInfo.Name.Substring(0,5);
-            File.Move($"{_path}/{fileInfo.Name}" ,"/home/yevgeniy/C#/ZIKM/captcha.jpg");
-            var data = File.ReadAllBytes("/home/yevgeniy/C#/ZIKM/captcha.jpg");
+            File.Move($@"{_path}]{fileInfo.Name}" , Path.Combine(Directory.GetCurrentDirectory(), "captcha.jpg"));
+            var data = File.ReadAllBytes(Path.Combine(Directory.GetCurrentDirectory(), "captcha.jpg"));
             stream.Write(data, 0, data.Length);
-            File.Move("/home/yevgeniy/C#/ZIKM/captcha.jpg", $"{_path}/{captcha}.jpg");
+            File.Move(Path.Combine(Directory.GetCurrentDirectory(), "captcha.jpg"), $@"{_path}\{captcha}.jpg");
             return captcha;
         }
     }

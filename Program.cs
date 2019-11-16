@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using Newtonsoft.Json;
 using System.IO;
 using ZIKM.Permissions;
+using ZIKM.Infrastructure;
 
 namespace ZIKM
 {
@@ -16,7 +17,7 @@ namespace ZIKM
             TcpListener server=null;
             try
             {
-                IPAddress localAddr = IPAddress.Parse("192.168.31.19");
+                IPAddress localAddr = IPAddress.Parse("127.0.0.1");
                 server = new TcpListener(localAddr, port);
                 var passwordsBase = GetPasswords();
  
@@ -27,24 +28,18 @@ namespace ZIKM
                 while (true)
                 {
                     TcpClient client = server.AcceptTcpClient();
- 
-                    //byte[] data = new byte[256];
-                    //StringBuilder response = new StringBuilder();
                     NetworkStream stream = client.GetStream();
+                    Provider provider = new Provider(stream);
 
                     var captcha = Captcha.Send(stream);
 
-                    /*do
-                    {
-                        int bytes = stream.Read(data, 0, data.Length);
-                        response.Append(Encoding.UTF8.GetString(data, 0, bytes));
+                    // Read login request
+                    LoginData userData; //= JsonConvert.DeserializeObject<LoginData>("{ User: \"\", Password: \"\", Captcha: \"\" }");
+                    try{ 
+                        userData = JsonConvert.DeserializeObject<LoginData>(provider.GetRequest());
                     }
-                    while (stream.DataAvailable);*/
-
-                    dynamic userData = JsonConvert.DeserializeObject("{ User: \"\", Password: \"\", Captcha: \"\" }");
-                    try{ userData = JsonConvert.DeserializeObject(Provider.GetRequest(stream)); }
                     catch (JsonReaderException){
-                        Provider.SendResponse("{ Code: -2, Message: \"Invalid request\" }", stream);
+                        provider.SendResponse(new ResponseData(-2, "Invalid request"));
                         Logger.ToLogAll("Invalid request");
                         stream.Close();
                         client.Close();
@@ -56,7 +51,7 @@ namespace ZIKM
                     string captchaResponse = userData.Captcha;
 
                     if (account == null || password == null || captchaResponse == null){
-                        Provider.SendResponse("{ Code: -2, Message: \"Invalid request\" }", stream);
+                        provider.SendResponse(new ResponseData(-2, "Invalid request"));
                         Logger.ToLogAll("Invalid request");
                         stream.Close();
                         client.Close();
@@ -66,70 +61,74 @@ namespace ZIKM
                     try{
                         if (passwordsBase[account] != null) {
                             if (passwordsBase[account].Count == 0){
+                                // User spent all passwords
                                 switch (account){
                                     case "Master":
-                                        Provider.SendResponse("{ Code: 2, Message: \"Don't think about this\" }", stream);
+                                        provider.SendResponse(new ResponseData(2, "Don't think about this"));
                                         Logger.ToLogAll("Fake master");
                                         break;
-                                    case "Senpai": 
-                                        Provider.SendResponse("{ Code: 2, Message: \"Impostor!\" }", stream);
+                                    case "Senpai":
+                                        provider.SendResponse(new ResponseData(2, "Impostor!"));
                                         Logger.ToLogAll("Impostor");
                                         break;
-                                    case "Kouhai": 
-                                        Provider.SendResponse("{ Code: 2, Message: \"Liar!!!!X|\" }", stream);
+                                    case "Kouhai":
+                                        provider.SendResponse(new ResponseData(2, "Liar!!!!X|"));
                                         Logger.ToLogAll("Liar");
                                         break;
-                                    default: 
-                                        Provider.SendResponse("{ Code: 2, Message: \"Blocked\" }", stream);
+                                    default:
+                                        provider.SendResponse(new ResponseData(2, "Blocked"));
                                         Logger.ToLogAll($"{account} blocked");
                                         break;
                                 }
                             }
                             else{
                                 if (passwordsBase[account][0] == password && captchaResponse == captcha){
-                                    var guid = Guid.NewGuid().ToString();
+                                    // Successful login
+                                    var guid = Guid.NewGuid();
                                     switch (account){
                                         case "Master":
-                                            Provider.SendResponse($"{{ SessionId: \"{guid}\", Code: 0, Message: \"Welcome, Master.\" }}", stream);
+                                            provider.SendResponse(new ResponseData(guid, 0, "Welcome, Master."));
                                             Logger.ToLog("Master here");
-                                            MasterPermission master = new MasterPermission(stream, guid);
-                                            master.Session();
-                                            Provider.SendResponse("{ Code: 0, Message: \" I will wait your return, Master.\" }", stream);
+                                            MasterPermission master = new MasterPermission(provider, guid);
+                                            master.StartSession();
+                                            provider.SendResponse(new ResponseData(guid, 0, "I will wait your return, Master."));
                                             Logger.ToLog("Master gone");
                                             break;
                                         case "Senpai": 
-                                            Provider.SendResponse($"{{ SessionId: \"{guid}\", Code: 0, Message: \"Senpai!!!XD\" }}", stream);
+                                            provider.SendResponse(new ResponseData(guid, 0, "Senpai!!!XD"));
                                             Logger.ToLog("Sempai back");
-                                            SenpaiPermission senpai = new SenpaiPermission(stream, guid);
-                                            senpai.Session();
-                                            Provider.SendResponse("{ Code: 0, Message: \"Senpai! I will wait!!!\" }", stream);
+                                            SenpaiPermission senpai = new SenpaiPermission(provider, guid);
+                                            senpai.StartSession();
+                                            provider.SendResponse(new ResponseData(guid, 0, "Senpai! I will wait!!!"));
                                             Logger.ToLog("Sempai gone");
                                             break;
                                         case "Kouhai": 
-                                            Provider.SendResponse($"{{ SessionId: \"{guid}\", Code: 0, Message: \"Sempai is waitting you)\" }}", stream);
+                                            provider.SendResponse(new ResponseData(guid, 0, "Sempai is waitting you)"));
                                             Logger.ToLog("Pervered kouhai here");
-                                            KouhaiPermission kouhai = new KouhaiPermission(stream, guid);
-                                            kouhai.Session();
-                                            Provider.SendResponse("{ Code: 0, Message: \"Be carefull, my kouhai.\" }", stream);
+                                            KouhaiPermission kouhai = new KouhaiPermission(provider, guid);
+                                            kouhai.StartSession();
+                                            provider.SendResponse(new ResponseData(guid, 0, "Be carefull, my kouhai."));
                                             Logger.ToLog("Pervered kouhai gone");
                                             break;
                                         default: 
-                                            Provider.SendResponse($"{{ SessionId: \"{guid}\", Code: 0, Message: \"You {account}\" }}", stream);
+                                            provider.SendResponse(new ResponseData(guid, 0, $"You {account}"));
                                             Logger.ToLog($"{account} here");
-                                            UserPermission user = new UserPermission(stream, guid);
-                                            user.Session();
-                                            Provider.SendResponse($"{{ Code: 0, Message: \"Bye {account}\" }}", stream);
+                                            UserPermission user = new UserPermission(provider, guid);
+                                            user.StartSession();
+                                            provider.SendResponse(new ResponseData(guid, 0, $"Bye {account}"));
                                             Logger.ToLog($"{account} disconnect");
                                             break;
                                     }
                                 }
                                 else{
                                     if (passwordsBase[account].Count == 1){
-                                        Provider.SendResponse("{ Code: -2, Message: \"You blocked\" }", stream);
+                                        // User's spent last password 
+                                        provider.SendResponse(new ResponseData(-2, "You blocked"));
                                         Logger.ToLogAll($"{account} blocked");
                                     }
                                     else {
-                                        Provider.SendResponse("{ Code: 1, Message: \"Try again\" }", stream);
+                                        // User's written wrong password
+                                        provider.SendResponse(new ResponseData(1, "Try again"));
                                         Logger.ToLogAll($"{account} errored");
                                     }
                                 } 
@@ -138,7 +137,8 @@ namespace ZIKM
                         }
                     }
                     catch (KeyNotFoundException){
-                        Provider.SendResponse($"{{ Code: -1, Message: \"No {account} in data\" }}", stream);
+                        // No user in data
+                        provider.SendResponse(new ResponseData(-1, $"No {account} in data"));
                         Logger.ToLogAll($"{account} not found");
                     }
 
@@ -157,9 +157,13 @@ namespace ZIKM
             }
         }
 
+        /// <summary>
+        /// Get users and passwords
+        /// </summary>
+        /// <returns>List of users with passwords</returns>
         private static Dictionary<string, List<string>> GetPasswords (){
             var passwords = new Dictionary<string, List<string>>();
-            XDocument doc = XDocument.Load("Accounts.xml");
+            XDocument doc = XDocument.Load(Path.Combine(Directory.GetCurrentDirectory(), "Accounts.xml"));
             foreach (var acc in doc.Element("Accounts").Elements("Account")){
                 var user = new List<string>();
                 foreach (var pass in acc.Element("Passwords").Elements("Password")) user.Add(pass.Value);

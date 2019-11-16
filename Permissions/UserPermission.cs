@@ -1,17 +1,26 @@
+using System;
 using System.IO;
 using System.Net.Sockets;
 using Newtonsoft.Json;
 
 namespace ZIKM.Permissions{
     class UserPermission: Permissions{
-        public UserPermission(NetworkStream stream, string guid): base(stream, guid) { code = 0; }
+        public UserPermission(Provider stream, Guid guid): base(stream, guid) { code = 0; }
 
-        public void Session(){
+        /// <summary>
+        /// Start session for user
+        /// </summary>
+        public override void StartSession()
+        {
+            Session(1);
+        }
+
+        /*public void Session(){
             while(true){
                 dynamic userData = JsonConvert.DeserializeObject("{ SessionId: \"\", Operation: \"\", Property: \"\" }");
-                try{ userData = JsonConvert.DeserializeObject(Provider.GetRequest(_stream)); }
+                try{ userData = JsonConvert.DeserializeObject(Provider.GetRequest(_provider)); }
                 catch (JsonReaderException){
-                    Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -2, Message: \"Invalid request\" }}", _stream);
+                    Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -2, Message: \"Invalid request\" }}", _provider);
                     Logger.ToLogAll("Invalid request");
                     continue;
                 }
@@ -87,13 +96,13 @@ namespace ZIKM.Permissions{
                     
                 }
                 else{
-                    Provider.SendResponse("{ Code: -3, Message: \"SessionID incorrect\" }", _stream);
+                    Provider.SendResponse("{ Code: -3, Message: \"SessionID incorrect\" }", _provider);
                     Logger.ToLogAll("SessionID incorrect");
                     _end = true;
                 }
                 if (_end) break;
-                Provider.SendResponse(response, _stream);
+                Provider.SendResponse(response, _provider);
             }
-        }
+        }*/
     }
 }

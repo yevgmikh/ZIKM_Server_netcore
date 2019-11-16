@@ -2,26 +2,27 @@ using System;
 using System.IO;
 using System.Net.Sockets;
 using Newtonsoft.Json;
+using ZIKM.Infrastructure;
 
 namespace ZIKM.Permissions{
-    class Permissions{
+    abstract class Permissions{
         FileOperation fileCode = FileOperation.Error;
 
-        protected string sessionid;
-        protected string _path = "/home/yevgeniy/C#/ZIKM/Data";
+        protected Guid sessionid;
+        protected string _path = Path.Combine(Directory.GetCurrentDirectory(), "Data");
         protected int code = 0;
         protected bool _end = false;
         protected Operation operation;
-        protected NetworkStream _stream;
+        protected Provider _provider;
 
-        protected Permissions(NetworkStream stream, string guid){
-            _stream = stream;
+        protected Permissions(Provider stream, Guid guid){
+            _provider = stream;
             sessionid = guid;
         }
 
         #region Helpers
         private void PermissionError() {
-            Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 2, Message: \"Not enough rights\" }}", _stream);
+            _provider.SendResponse(new ResponseData(sessionid, 2, "Not enough rights."));
             Logger.ToLogAll("Not enough rights");
         } 
 
@@ -91,17 +92,17 @@ namespace ZIKM.Permissions{
         }
         #endregion
 
-        #region FileChange
         protected void FileChange(string name, int perStatus, int perUser)
         {
-            Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"File {name} opened\" }}", _stream);
+            _provider.SendResponse(new ResponseData(sessionid, 0, $"File {name} opened"));
             Logger.ToLog($"File {name} opened");
             while (true)
             {
-                dynamic userData = JsonConvert.DeserializeObject("{ SessionId: \"\", Operation: \"\", Property: \"\" }");
-                try{ userData = JsonConvert.DeserializeObject(Provider.GetRequest(_stream)); }
+                // Get request
+                RequestData userData; //= JsonConvert.DeserializeObject("{ SessionId: \"\", Operation: \"\", Property: \"\" }");
+                try{ userData = JsonConvert.DeserializeObject<RequestData>(_provider.GetRequest()); }
                 catch (JsonReaderException){
-                    Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -2, Message: \"Invalid request\" }}", _stream);
+                    _provider.SendResponse(new ResponseData(-2, "Invalid request"));
                     Logger.ToLogAll("Invalid request");
                     continue;
                 }
@@ -110,7 +111,7 @@ namespace ZIKM.Permissions{
                 fileCode = GetFileOperation(Operation);
 
                 bool ex = false;
-                string session = userData.SessionId;
+                Guid session = userData.SessionId;
 
                 if (session == sessionid)
                 switch (fileCode)
@@ -123,17 +124,17 @@ namespace ZIKM.Permissions{
                         {
                             try
                             {
-                                var texts = File.ReadAllLines($"{_path}/{name}");
+                                var texts = File.ReadAllLines($@"{_path}\{name}");
                                 ushort property = 0;
                                 if (property == 0) property = (ushort)texts.Length;
                                 string text = "";
                                 for (ushort i = 0; i < property; i++) text += $"{texts[i]}\n";
-                                Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"{text}\" }}", _stream);
+                                _provider.SendResponse(new ResponseData(sessionid, 0, $"{text}"));
                                 Logger.ToLog($"File {name} read");
                             }
                             catch (Exception e)
                             {
-                                Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 1, Message: \"Errorr reading{e.Message}\" }}", _stream);
+                                _provider.SendResponse(new ResponseData(sessionid, 1, $"Errorr reading{e.Message}"));
                                 Logger.ToLogAll($"Error while {name} read, {e.Message}");
                             }
 
@@ -146,13 +147,13 @@ namespace ZIKM.Permissions{
                             try
                             {
                                 string property = userData.Property;
-                                using (StreamWriter writer = new StreamWriter($"{_path}/{name}", true)) writer.WriteLine(property);
-                                Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"Successfully\" }}", _stream);
+                                using (StreamWriter writer = new StreamWriter($@"{_path}\{name}", true)) writer.WriteLine(property);
+                                _provider.SendResponse(new ResponseData(sessionid, 0, "Successfully"));
                                 Logger.ToLog($"Writen to file {name}");
                             }
                             catch (Exception e)
                             {
-                                Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 1, Message: \"Error writing{e.Message}\" }}", _stream);
+                                _provider.SendResponse(new ResponseData(sessionid, 1, $"Error writing{e.Message}"));
                                 Logger.ToLogAll($"Error while {name} write, {e.Message}");
                             }
                         }
@@ -163,15 +164,15 @@ namespace ZIKM.Permissions{
                         {
                             try
                             {
-                                var text = File.ReadAllText($"{_path}/{name}");
-                                Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"{text}\" }}", _stream);
+                                var text = File.ReadAllText($@"{_path}\{name}");
+                                _provider.SendResponse(new ResponseData(sessionid, 0, $"{text}"));
                                 while (true){
                                     try{ 
-                                        userData = JsonConvert.DeserializeObject(Provider.GetRequest(_stream)); 
+                                        userData = JsonConvert.DeserializeObject<RequestData>(_provider.GetRequest()); 
                                         break;
                                     }
                                     catch (JsonReaderException){
-                                        Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -2, Message: \"Invalid request\" }}", _stream);
+                                        _provider.SendResponse(new ResponseData(-2, "Invalid request"));
                                         Logger.ToLogAll("Invalid request");
                                         continue;
                                     }
@@ -180,30 +181,30 @@ namespace ZIKM.Permissions{
                                 if (Operation == 3)
                                 {
                                     string property = userData.Property;
-                                    using (StreamWriter writer = new StreamWriter($"{_path}/{name}", false)) writer.WriteLine(property);
-                                    Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"Updated\" }}", _stream);
+                                    using (StreamWriter writer = new StreamWriter($@"{_path}\{name}", false)) writer.WriteLine(property);
+                                    _provider.SendResponse(new ResponseData(sessionid, 0, "Updated"));
                                     Logger.ToLog($"File {name} edited");
                                 }
                                 else {
-                                    Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 0, Message: \"Canceled\" }}", _stream);
+                                    _provider.SendResponse(new ResponseData(sessionid, 0, "Canceled"));
                                     Logger.ToLog($"File {name} no edited");
                                 }
                             }
                             catch (Exception e)
                             {
-                                Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: 1, Message: \"Error editing:{e.Message}\" }}", _stream);
+                                _provider.SendResponse(new ResponseData(sessionid, 1, $"Error editing:{e.Message}"));
                                 Logger.ToLogAll($"Error while {name} edit, {e.Message}");
                             }
                         }
                         else PermissionError();
                         break;
                     default:
-                        Provider.SendResponse($"{{ SessionId: \"{sessionid}\", Code: -1, Message: \"Invalid operation\" }}", _stream);
+                        _provider.SendResponse(new ResponseData(sessionid, -1, "Invalid operation"));
                         Logger.ToLogAll("Invalid operation");
                         break;
                 }
                 else{
-                    Provider.SendResponse("{ Code: -3, Message: \"SessionID incorrect\" }", _stream);
+                    _provider.SendResponse(new ResponseData(-3, "SessionID incorrect"));
                     Logger.ToLogAll("SessionID incorrect");
                     ex = true;
                     _end = true;
@@ -212,6 +213,116 @@ namespace ZIKM.Permissions{
             }
             Logger.ToLog($"File {name} closed");
         }
-        #endregion
+
+        /// <summary>
+        /// Get session for working with files
+        /// </summary>
+        /// <param name="permision">User rights level</param>
+        protected void Session(int permision)
+        {
+            while (true)
+            {
+                // Get request
+                RequestData userData; //= JsonConvert.DeserializeObject("{ SessionId: \"\", Operation: \"\", Property: \"\" }");
+                try { userData = JsonConvert.DeserializeObject<RequestData>(_provider.GetRequest()); }
+                catch (JsonReaderException)
+                {
+                    _provider.SendResponse(new ResponseData(-2, "Invalid request"));
+                    Logger.ToLogAll("Invalid request");
+                    continue;
+                }
+                ResponseData response = new ResponseData();
+                int op = userData.Operation;
+                operation = GetOperation(op);
+                Guid session = userData.SessionId;
+
+                if (session == sessionid)
+                    switch (operation)
+                    {
+                        case Operation.GetFiles:
+                            var files = Directory.GetFiles(_path);
+                            response = new ResponseData(sessionid, 0, $"{ToProperty(OnlyNames(files, true))}");
+                            break;
+
+
+                        case Operation.GetFolders:
+                            var directories = Directory.GetDirectories(_path);
+                            response = new ResponseData(sessionid, 0, $"{ToProperty(OnlyNames(directories, false))}");
+                            break;
+
+
+                        case Operation.OpenFile:
+                            if (code != 0)
+                            {
+                                string property = userData.Property;
+                                if (IsHave(Directory.GetFiles(_path), property))
+                                {
+                                    FileChange(property, code, permision);
+                                    response = new ResponseData(sessionid, 0, $"File {property} closed");
+                                }
+                                else response = new ResponseData(sessionid, 1, "File not found");
+                            }
+                            else response = new ResponseData(sessionid, 1, "Here no files");
+                            break;
+
+
+                        case Operation.OpenFolder:
+                            if (code == 0)
+                            {
+                                int property = int.Parse(userData.Property);
+                                if (IsCorrect(property))
+                                {
+                                    int prop = int.Parse(userData.Property);
+                                    if (prop <= permision - 1 && prop >= permision + 1)
+                                    {
+                                        _path += $"/{prop}";
+                                        code = prop;
+                                        response = new ResponseData(sessionid, 0, $"Folder {prop} opened");
+                                    }
+                                    else response = new ResponseData(sessionid, 2, "Not enough rights");
+                                }
+                                else response = new ResponseData(sessionid, 1, "Here no this folder");
+                            }
+                            else response = new ResponseData(sessionid, 1, "Here no folders");
+                            break;
+
+
+                        case Operation.CloseFolder:
+                            if (code != 0)
+                            {
+                                _path.Substring(0, _path.Length - 2);
+                                code = 0;
+                                response = new ResponseData(sessionid, 0, "Folder closed");
+                            }
+                            else response = new ResponseData(sessionid, 1, "You in home directory");
+                            break;
+
+
+                        case Operation.End:
+                            _end = true;
+                            break;
+
+
+                        default:
+                            response = new ResponseData(sessionid, -1, $"Invalid operation");
+                            Logger.ToLogAll("Invalid operation");
+                            break;
+
+                    }
+                else
+                {
+                    _provider.SendResponse(new ResponseData(-3, "SessionID incorrect"));
+                    Logger.ToLogAll("SessionID incorrect");
+                    _end = true;
+                }
+                if (_end) break;
+                _provider.SendResponse(response);
+            }
+        }
+
+        /// <summary>
+        /// Start session for user
+        /// </summary>
+        public abstract void StartSession();
     }
 }
