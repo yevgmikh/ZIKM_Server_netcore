@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Xml.Linq;
 using System.Collections.Generic;
@@ -39,13 +41,11 @@ namespace ZIKM{
         }
 
         public static string GetLocalIPAddress(){
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach (var ip in host.AddressList){
-                if (ip.AddressFamily == AddressFamily.InterNetwork){
-                    return ip.ToString();
-                }
-            }
-            throw new Exception("No network adapters with an IPv4 address in the system!");
+            return NetworkInterface.GetAllNetworkInterfaces()
+                .Where(c => c.NetworkInterfaceType != NetworkInterfaceType.Loopback && c.OperationalStatus == OperationalStatus.Up)
+                .Select(i => i.GetIPProperties()).First().UnicastAddresses
+                .Where(c => c.Address.AddressFamily == AddressFamily.InterNetwork)
+                .Select(j => j.Address).First().ToString();
         }
 
         /// <summary>

@@ -1,12 +1,12 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Content Include="$(ProjectDir)Captchas\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(ProjectDir)Data\**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(ProjectDir)Accounts.xml" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="copy $(ProjectDir)\Accounts.xml $(ProjectDir)$(OutDir)&#xD;&#xA;xcopy /y $(ProjectDir)Captchas\* $(ProjectDir)$(OutDir)Captchas\&#xD;&#xA;xcopy /y $(ProjectDir)Data\1\* $(ProjectDir)$(OutDir)Data\1\&#xD;&#xA;xcopy /y $(ProjectDir)Data\2\* $(ProjectDir)$(OutDir)Data\2\&#xD;&#xA;xcopy /y $(ProjectDir)Data\3\* $(ProjectDir)$(OutDir)Data\3\&#xD;&#xA;xcopy /y $(ProjectDir)Data\4\* $(ProjectDir)$(OutDir)Data\4\" />
-  </Target>
 </Project>
