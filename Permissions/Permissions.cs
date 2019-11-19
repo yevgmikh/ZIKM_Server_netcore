@@ -226,6 +226,15 @@ namespace ZIKM.Permissions{
                             Provider.SendResponse(new ResponseData(Sessionid, 0, $"{ToProperty(directories)}"));
                             break;
 
+                        case MainOperation.GetAll:
+                            var objects = Directory.GetDirectories(Path)
+                                .Select(i => $"folder:{new DirectoryInfo(i).Name}").ToList();
+                            objects.AddRange(Directory.GetFiles(Path)
+                                .Select(i => $"file:{new FileInfo(i).Name}"));
+                            Provider.SendResponse(new ResponseData(Sessionid, 0, $"{ToProperty(objects)}"));
+                            break;
+
+
                         case MainOperation.OpenFile:
                             // Check is not root folder
                             if (Code != 0){
