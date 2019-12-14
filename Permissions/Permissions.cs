@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
+using System.Text.Json;
 using ZIKM.Infrastructure;
 using ZIKM.Interfaces;
 
@@ -89,7 +89,7 @@ namespace ZIKM.Permissions{
                 try{ 
                     userData = Provider.GetRequest(); 
                 }
-                catch (JsonReaderException){
+                catch (JsonException){
                     Provider.SendResponse(new ResponseData(-2, "Invalid request"));
                     Logger.ToLogAll("Invalid request");
                     continue;
@@ -148,7 +148,7 @@ namespace ZIKM.Permissions{
                                             userData = Provider.GetRequest(); 
                                             break;
                                         }
-                                        catch (JsonReaderException){
+                                        catch (JsonException){
                                             Provider.SendResponse(new ResponseData(-2, "Invalid request"));
                                             Logger.ToLogAll("Invalid request");
                                             continue;
@@ -207,7 +207,7 @@ namespace ZIKM.Permissions{
                 try { 
                     userData = Provider.GetRequest(); 
                 }
-                catch (JsonReaderException){
+                catch (JsonException){
                     Provider.SendResponse(new ResponseData(-2, "Invalid request"));
                     Logger.ToLogAll("Invalid request");
                     continue;

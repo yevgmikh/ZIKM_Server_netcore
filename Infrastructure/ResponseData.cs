@@ -16,5 +16,7 @@ namespace ZIKM.Infrastructure{
         public Guid SessionId { get; set; }
         public short Code { get; set; }
         public string Message { get; set; }
+
+        public override string ToString() => $"SessionId: {SessionId}, Code: {Code}, Message: {Message}";
     }
 }

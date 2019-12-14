@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 
 namespace ZIKM{
     static class Logger{
@@ -19,7 +20,7 @@ namespace ZIKM{
         /// <param name="text">Log entry</param>
         public static void ToLog(string text){
             ToLogAll(text);
-            using StreamWriter writer = new StreamWriter(Path.Combine(logSuccessPath, $"{DateTime.Today.ToLongDateString()}.log"), true);
+            using StreamWriter writer = new StreamWriter(Path.Combine(logSuccessPath, $"{DateTime.Today.ToShortDateString()}.log"), true);
             writer.WriteLine(DateTime.Now.ToString() + $": {text}");
         }
 
@@ -29,17 +30,18 @@ namespace ZIKM{
         /// <param name="text">Log entry</param>
         public static void ToLogAll(string text){
             Console.WriteLine(DateTime.Now.ToShortTimeString() + $": {text}");
-            using StreamWriter writer = new StreamWriter(Path.Combine(logAllPath, $"{DateTime.Today.ToLongDateString()}.log"), true);
+            using StreamWriter writer = new StreamWriter(Path.Combine(logAllPath, $"{DateTime.Today.ToShortDateString()}.log"), true);
             writer.WriteLine(DateTime.Now.ToString() + $": {text}");
         }
 
         /// <summary>
         /// Write provider comunication operation
         /// </summary>
-        /// <param name="text">Log entry</param>
-        public static void ToLogProvider (string text) {
-            using StreamWriter writer = new StreamWriter(Path.Combine(logProviderPath, $"{DateTime.Today.ToLongDateString()}.log"), true);
-            writer.WriteLine(DateTime.Now.ToString() + $": {text}");
+        /// <param name="data">Log entry</param>
+        /// <param name="lenth">Lenth of entry</param>
+        public static void ToLogProvider(byte[] data, int lenth) {
+            using StreamWriter writer = new StreamWriter(Path.Combine(logProviderPath, $"{DateTime.Today.ToShortDateString()}.log"), true);
+            writer.WriteLine(DateTime.Now.ToString() + $": {Encoding.UTF8.GetString(data, 0, lenth)}");
         }
     }
 }

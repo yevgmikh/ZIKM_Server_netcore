@@ -1,15 +1,13 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.IO;
 using System.Net.Sockets;
-using System.Text;
+using System.Text.Json;
 using ZIKM.Infrastructure;
 using ZIKM.Interfaces;
 
-namespace ZIKM{
+namespace ZIKM
+{
     class TCPProvider : IProvider{
-        private byte[] _data;
-        private StringBuilder _response;
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
 
@@ -23,10 +21,9 @@ namespace ZIKM{
         /// </summary>
         /// <param name="response">Response data</param>
         public void SendResponse(ResponseData response){
-            string JsonString = JsonConvert.SerializeObject(response);
-            _data = Encoding.UTF8.GetBytes(JsonString);
-            _stream.Write(_data, 0, _data.Length);
-            Logger.ToLogProvider(JsonString);
+            byte[] data = JsonSerializer.SerializeToUtf8Bytes(response);
+            _stream.Write(data, 0, data.Length);
+            Logger.ToLogProvider(data, data.Length);
         }
 
         /// <summary>
@@ -34,21 +31,19 @@ namespace ZIKM{
         /// </summary>
         /// <param name="filePath">Path to captcha-file</param>
         public void SendCaptcha(string filePath){
-            _data = File.ReadAllBytes(filePath);
-            _stream.Write(_data, 0, _data.Length);
+            byte[] data = File.ReadAllBytes(filePath);
+            _stream.Write(data, 0, data.Length);
         }
 
         /// <summary>
         /// Read client request
         /// </summary>
-        /// <returns>JSON-string with data of clint request</returns>
-        private string ReadRequest(){
-            _data = new byte[100000];
-            _response = new StringBuilder();
-            int bytes = _stream.Read(_data, 0, _data.Length);
-            _response.Append(Encoding.UTF8.GetString(_data, 0, bytes));
-            Logger.ToLogProvider(_response.ToString());
-            return _response.ToString();
+        /// <returns>Data of clint request</returns>
+        private ReadOnlySpan<byte> ReadRequest(){
+            byte[] data = new byte[_client.SendBufferSize];
+            int bytes = _stream.Read(data);
+            Logger.ToLogProvider(data, bytes);
+            return new ReadOnlySpan<byte>(data, 0, bytes);
         }
 
         /// <summary>
@@ -56,7 +51,7 @@ namespace ZIKM{
         /// </summary>
         /// <returns>Data of client's request</returns>
         public RequestData GetRequest(){
-            return JsonConvert.DeserializeObject<RequestData>(ReadRequest());
+            return JsonSerializer.Deserialize<RequestData>(ReadRequest());
         }
 
         /// <summary>
@@ -64,7 +59,7 @@ namespace ZIKM{
         /// </summary>
         /// <returns>Data of login request</returns>
         public LoginData GetLoginRequest(){
-            return JsonConvert.DeserializeObject<LoginData>(ReadRequest());
+            return JsonSerializer.Deserialize<LoginData>(ReadRequest());
         }
 
         #region IDisposable Support

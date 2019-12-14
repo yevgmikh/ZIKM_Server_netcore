@@ -11,5 +11,7 @@ namespace ZIKM.Infrastructure{
         public Guid SessionId { get; set; }
         public int Operation { get; set; }
         public string Property { get; set; }
+
+        public override string ToString() => $"SessionId: {SessionId}, Operation: {Operation}, Property: {Property}";
     }
 }
