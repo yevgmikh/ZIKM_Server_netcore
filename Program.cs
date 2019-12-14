@@ -24,19 +24,21 @@ namespace ZIKM{
                 GetPasswords();
  
                 server.Start();
-                Console.WriteLine("Server started");
+                Logger.ToLog("Server started");
  
                 while (true){
                     TcpClient client = server.AcceptTcpClient();
                     Task.Run(() => Process(client));
                 }
             }
-            catch (Exception e){
-                Console.WriteLine(e.Message);
+            catch (Exception ex){
+                Logger.ToLogAll(ex.Message);
+                Logger.ToLogAll(ex.StackTrace);
             }
             finally{
                 if (server != null)
                     server.Stop();
+                Logger.ToLog("Server stoped");
             }
         }
 
