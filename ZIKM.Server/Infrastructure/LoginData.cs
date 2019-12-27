@@ -9,7 +9,5 @@
         public string User { get; set; }
         public string Password { get; set; }
         public string Captcha { get; set; }
-
-        public override string ToString() => $"User: {User}, Password: {Password}, Captcha: {Captcha}";
     }
 }
