@@ -1,4 +1,4 @@
-﻿namespace ZIKM.Interfaces{
+﻿namespace ZIKM.Infrastructure.Interfaces{
     public interface ICaptcha{
         /// <summary>
         /// Send captcha to client

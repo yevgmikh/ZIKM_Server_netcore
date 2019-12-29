@@ -7,9 +7,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZIKM", "ZIKM.Server\ZIKM.cs
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C5F7E3D2-DFC3-4BD9-8180-185D5301CDF6}"
 	ProjectSection(SolutionItems) = preProject
-		docker-compose.yml = docker-compose.yml
 		Dockerfile = Dockerfile
 	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZIKM.Infrastructure", "ZIKM.Infrastructure\ZIKM.Infrastructure.csproj", "{238375FD-B209-4290-BAA9-5AE069ED9E24}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +34,18 @@ Global
 		{6593550E-6F94-4EC1-8E41-61FA729CDF7F}.Release|x64.Build.0 = Release|Any CPU
 		{6593550E-6F94-4EC1-8E41-61FA729CDF7F}.Release|x86.ActiveCfg = Release|Any CPU
 		{6593550E-6F94-4EC1-8E41-61FA729CDF7F}.Release|x86.Build.0 = Release|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Debug|x64.Build.0 = Debug|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Debug|x86.Build.0 = Debug|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Release|Any CPU.Build.0 = Release|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Release|x64.ActiveCfg = Release|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Release|x64.Build.0 = Release|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Release|x86.ActiveCfg = Release|Any CPU
+		{238375FD-B209-4290-BAA9-5AE069ED9E24}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -7,16 +7,24 @@ using System.Collections.Generic;
 using System.IO;
 using ZIKM.Permissions;
 using ZIKM.Infrastructure;
-using ZIKM.Interfaces;
 using System.Threading.Tasks;
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Infrastructure.Providers;
+using ZIKM.Infrastructure.DataStructures;
 
 namespace ZIKM
 {
     class Program{
-        static Dictionary<string, List<string>> passwordsBase;
+        private static Dictionary<string, List<string>> passwordsBase;
 
         static void Main(string[] args){
+            IConfigurationRoot configuration = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .Build();
+            Client.StorageType = Enum.Parse<Storage>(configuration["Storage"]);
+
             TcpListener server=null;
             try{
                 IPAddress localAddr = IPAddress.Parse(GetLocalIPAddress());
@@ -111,20 +119,19 @@ namespace ZIKM
                         else{
                             if (passwordsBase[userData.User][0] == userData.Password && userData.Captcha == captchaCode){
                                 #region Successfull login
-                                IPermissionsLevel levels = new PermissionData();
                                 switch (userData.User)
                                 {
                                     case "Master":
-                                        new MasterPermission(provider, levels).StartSession();
+                                        new MasterPermission(provider).StartSession();
                                         break;
                                     case "Senpai":
-                                        new SenpaiPermission(provider, levels).StartSession();
+                                        new SenpaiPermission(provider).StartSession();
                                         break;
                                     case "Kouhai":
-                                        new KouhaiPermission(provider, levels).StartSession();
+                                        new KouhaiPermission(provider).StartSession();
                                         break;
                                     default:
-                                        new UserPermission(provider, levels, userData.User).StartSession();
+                                        new UserPermission(provider, userData.User).StartSession();
                                         break;
                                 }
                                 #endregion

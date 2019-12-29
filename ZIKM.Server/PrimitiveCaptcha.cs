@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
-using ZIKM.Interfaces;
+using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Infrastructure.Providers;
 
 namespace ZIKM{
     /// <summary>

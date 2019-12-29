@@ -2,12 +2,11 @@
 using System.IO;
 using System.Net.Sockets;
 using System.Text.Json;
-using ZIKM.Infrastructure;
-using ZIKM.Interfaces;
+using ZIKM.Infrastructure.DataStructures;
+using ZIKM.Infrastructure.Interfaces;
 
-namespace ZIKM
-{
-    class TCPProvider : IProvider{
+namespace ZIKM.Infrastructure.Providers{
+    public class TCPProvider : IProvider{
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
 

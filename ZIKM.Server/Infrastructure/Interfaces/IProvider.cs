@@ -1,7 +1,7 @@
 ﻿using System;
-using ZIKM.Infrastructure;
+using ZIKM.Infrastructure.DataStructures;
 
-namespace ZIKM.Interfaces{
+namespace ZIKM.Infrastructure.Interfaces{
     public interface IProvider : IDisposable{
         /// <summary>
         /// Send response to client

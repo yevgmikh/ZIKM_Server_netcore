@@ -1,29 +1,20 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Text.Json;
 using ZIKM.Infrastructure;
-using ZIKM.Interfaces;
+using ZIKM.Infrastructure.DataStructures;
+using ZIKM.Infrastructure.Enums;
+using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Infrastructure.Storages;
 
 namespace ZIKM.Permissions{
     abstract class Client{
-        /// <summary>
-        /// User's permission level
-        /// </summary>
-        private readonly int _level;
-        private readonly string _rootPath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data");
-        protected readonly Dictionary<string, int> _permissions;
+        #region Storage
+        private IStorage storage;
 
-        /// <summary>
-        /// Permission status of file(opened folder)
-        /// </summary>
-        protected int Code { get; set; } = 0;
-        /// <summary>
-        /// Current directory
-        /// </summary>
-        protected string Path { get; set; } = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data");
-        protected Guid Sessionid { get; set; }
+        public static Storage StorageType { get; set; }
+        #endregion
+
+        protected Guid SessionID { get; set; }
         protected IProvider Provider { get; set; }
 
         /// <summary>
@@ -39,160 +30,120 @@ namespace ZIKM.Permissions{
         /// Create client object
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
-        /// <param name="permissions">Getting data about permissions</param>
         /// <param name="level">User's permission level</param>
-        protected Client(IProvider provider, IPermissionsLevel permissions, int level){
+        protected Client(IProvider provider, int level){
             Provider = provider ?? throw new ArgumentNullException(nameof(provider));
-            Sessionid = Guid.NewGuid();
-            _level = level;
-            _permissions = new Dictionary<string, int>(permissions.Levels);
-            if (_permissions.ContainsValue(0)){
-                if (!_permissions.ContainsKey(_rootPath))
-                    throw new Exception("Incorrect root path in permission level dictionary");
+            SessionID = Guid.NewGuid();
+            switch (StorageType)
+            {
+                case Storage.Files:
+                    storage = new FileStorage(level);
+                    break;
+                case Storage.InternalDB:
+                    throw new NotImplementedException();
+                case Storage.ExternalDB:
+                    throw new NotImplementedException();
             }
-            else
-                _permissions.Add(_rootPath, 0);
         }
 
         #region Helpers
         /// <summary>
-        /// Sending response about not enough permissions
+        /// Get user request
         /// </summary>
-        protected void PermissionError() {
-            Provider.SendResponse(new ResponseData(Sessionid, 2, "Not enough rights."));
-            Logger.ToLogAll("Not enough rights");
+        /// <param name="userData">User request</param>
+        /// <returns>Status of request</returns>
+        private bool GetRequest(out RequestData userData){
+            try{
+                userData = Provider.GetRequest();
+                return true;
+            }
+            catch (JsonException) {
+                Provider.SendResponse(new ResponseData(-2, "Invalid request"));
+                Logger.ToLogAll("Invalid request");
+                userData = new RequestData();
+                return false;
+            }
         }
 
         /// <summary>
-        /// Pack names to property(string)
+        /// Check user session ID
         /// </summary>
-        /// <param name="names">Names for pack</param>
-        /// <returns>Packed names to string</returns>
-        protected string ToProperty(IEnumerable<string> names){
-            string pack ="";
-            foreach (var name in names) pack += $"{name};"; 
-            return pack;
+        /// <param name="userSession">User session ID</param>
+        /// <returns>Status of checking</returns>
+        private bool CheckSessionID(Guid userSession){
+            if (userSession == SessionID){
+                return true;
+            }
+            else{
+                Provider.SendResponse(new ResponseData(-3, "SessionID incorrect. Force closing session."));
+                Logger.ToLogAll("SessionID incorrect");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Add session ID to response and send it
+        /// </summary>
+        /// <param name="data"></param>
+        private void SendResponse(ResponseData data){
+            data.SessionId = SessionID;
+            Provider.SendResponse(data);
         }
         #endregion
 
         /// <summary>
         /// Operation for changing files
         /// </summary>
-        /// <param name="name">File name</param>
         /// <returns>Status of normal ending working with file</returns>
-        protected bool FileChange(string name){
-            Provider.SendResponse(new ResponseData(Sessionid, 0, $"File {name} opened"));
-            Logger.ToLog($"File {name} opened");
+        protected bool FileChange(){
+            IFileOperation file = storage;
             while (true){
                 // Get request
-                RequestData userData;
-                try{ 
-                    userData = Provider.GetRequest(); 
-                }
-                catch (JsonException){
-                    Provider.SendResponse(new ResponseData(-2, "Invalid request"));
-                    Logger.ToLogAll("Invalid request");
+                if (!GetRequest(out RequestData userData))
                     continue;
-                }
 
-                if (userData.SessionId == Sessionid){
-                    switch ((FileOperation)userData.Operation){
-                        case FileOperation.Exit:
-                            Logger.ToLog($"File {name} closed");
-                            return true;
-
-                        case FileOperation.Read:
-                            // Check permisions
-                            if ((Code + 1) == _level || Code == _level){
-                                try{
-                                    var texts = File.ReadAllText(System.IO.Path.Combine(Path, $"{name}"));
-                                    Provider.SendResponse(new ResponseData(Sessionid, 0, $"{texts}"));
-                                    Logger.ToLog($"File {name} read");
-                                }
-                                catch (Exception e){
-                                    Provider.SendResponse(new ResponseData(Sessionid, 1, $"Error reading{e.Message}"));
-                                    Logger.ToLogAll($"Error while {name} read, {e.Message}");
-                                }
-
-                            }
-                            else 
-                                PermissionError();
-                            break;
-
-                        case FileOperation.Write:
-                            // Check permisions
-                            if ((Code - 1) == _level || Code == _level){
-                                try{
-                                    using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(Path, $"{name}"), true)) 
-                                        writer.WriteLine(userData.Property);
-
-                                    Provider.SendResponse(new ResponseData(Sessionid, 0, "Successfully"));
-                                    Logger.ToLog($"Saved to file {name}");
-                                }
-                                catch (Exception e){
-                                    Provider.SendResponse(new ResponseData(Sessionid, 1, $"Error writing{e.Message}"));
-                                    Logger.ToLogAll($"Error while saving file {name}, {e.Message}");
-                                }
-                            }
-                            else PermissionError();
-                            break;
-
-                        case FileOperation.Edit:
-                            // Check permisions
-                            if (Code == _level){
-                                try{
-                                    var text = File.ReadAllText(System.IO.Path.Combine(Path, $"{name}"));
-                                    Provider.SendResponse(new ResponseData(Sessionid, 0, $"{text}"));
-                                    while (true){
-                                        try{ 
-                                            userData = Provider.GetRequest(); 
-                                            break;
-                                        }
-                                        catch (JsonException){
-                                            Provider.SendResponse(new ResponseData(-2, "Invalid request"));
-                                            Logger.ToLogAll("Invalid request");
-                                            continue;
-                                        }
-                                    }
-                                
-                                    // Commit changes
-                                    if (userData.SessionId == Sessionid){
-                                        if (userData.Operation == 3){
-                                            using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(Path, $"{name}"), false)) 
-                                                writer.WriteLine(userData.Property);
-
-                                            Provider.SendResponse(new ResponseData(Sessionid, 0, "Updated"));
-                                            Logger.ToLog($"File {name} edited");
-                                        }
-                                        else {
-                                            Provider.SendResponse(new ResponseData(Sessionid, 0, "Canceled"));
-                                            Logger.ToLog($"File {name} no edited");
-                                        }
-                                    }
-                                    else{
-                                        Provider.SendResponse(new ResponseData(-3, "SessionID incorrect. Force closing session."));
-                                        Logger.ToLogAll("SessionID incorrect");
-                                        return false;
-                                    }
-                                }
-                                catch (Exception e){
-                                    Provider.SendResponse(new ResponseData(Sessionid, 1, $"Error editing:{e.Message}"));
-                                    Logger.ToLogAll($"Error while editing file {name}, {e.Message}");
-                                }
-                            }
-                            else 
-                                PermissionError();
-                            break;
-                        default:
-                            Provider.SendResponse(new ResponseData(Sessionid, -1, "Invalid operation"));
-                            Logger.ToLogAll("Invalid operation");
-                            break;
-                    }
-                }
-                else{
-                    Provider.SendResponse(new ResponseData(-3, "SessionID incorrect. Force closing session."));
-                    Logger.ToLogAll("SessionID incorrect");
+                if (!CheckSessionID(userData.SessionId))
                     return false;
+
+                switch ((FileOperation)userData.Operation){
+                    case FileOperation.Read:
+                        SendResponse(file.ReadFile());
+                        break;
+
+                    case FileOperation.Write:
+                        SendResponse(file.WriteToFile(userData.Property));
+                        break;
+
+                    case FileOperation.Edit:
+                        #region Edit
+                        var edit = file.ReadFile();
+                        SendResponse(edit);
+
+                        if (edit.Code == 0){
+                            // Get confirm request
+                            while (!GetRequest(out userData)) { }
+                            if (!CheckSessionID(userData.SessionId))
+                                return false;
+
+                            // Commit changes
+                            if (userData.Operation == 3){
+                                SendResponse(storage.ChangeFile(userData.Property));
+                            }
+                            else{
+                                SendResponse(new ResponseData(0, "Canceled"));
+                            }
+                        }
+                        #endregion
+                        break;
+
+                    case FileOperation.Exit:
+                        SendResponse(file.CloseFile());
+                        return true;
+
+                    default:
+                        Provider.SendResponse(new ResponseData(SessionID, -1, "Invalid operation"));
+                        Logger.ToLogAll("Invalid operation");
+                        break;
                 }
             }
         }
@@ -201,112 +152,46 @@ namespace ZIKM.Permissions{
         /// Get session for working with files
         /// </summary>
         protected void Session(){
+            IDirectoryOperation session = storage;
             while (true){
                 // Get request
-                RequestData userData;
-                try { 
-                    userData = Provider.GetRequest(); 
-                }
-                catch (JsonException){
-                    Provider.SendResponse(new ResponseData(-2, "Invalid request"));
-                    Logger.ToLogAll("Invalid request");
+                if (!GetRequest(out RequestData userData))
                     continue;
-                }
+
+                if (!CheckSessionID(userData.SessionId))
+                    return;
 
                 // Main operations
-                if (userData.SessionId == Sessionid){
-                    switch ((MainOperation)userData.Operation){
-                        case MainOperation.GetFiles:
-                            var files = Directory.GetFiles(Path).Select(i => new FileInfo(i).Name);
-                            Provider.SendResponse(new ResponseData(Sessionid, 0, $"{ToProperty(files)}"));
-                            break;
+                switch ((MainOperation)userData.Operation){
 
-                        case MainOperation.GetFolders:
-                            var directories = Directory.GetDirectories(Path).Select(i => new DirectoryInfo(i).Name);
-                            Provider.SendResponse(new ResponseData(Sessionid, 0, $"{ToProperty(directories)}"));
-                            break;
+                    case MainOperation.GetAll:
+                        Provider.SendResponse(session.GetAll());
+                        break;
 
-                        case MainOperation.GetAll:
-                            var objects = Directory.GetDirectories(Path)
-                                .Select(i => $"folder:{new DirectoryInfo(i).Name}").ToList();
-                            objects.AddRange(Directory.GetFiles(Path)
-                                .Select(i => $"file:{new FileInfo(i).Name}"));
-                            Provider.SendResponse(new ResponseData(Sessionid, 0, $"{ToProperty(objects)}"));
-                            break;
-
-
-                        case MainOperation.OpenFile:
-                            // Check is not root folder
-                            if (Code != 0){
-                                // Check file name
-                                if (Directory.GetFiles(Path).Select(i => new FileInfo(i).Name).Contains(userData.Property)){
-                                    // Opening file, if incorrect sessionID inside, then close session here
-                                    if (!FileChange(userData.Property))
-                                        return;
-
-                                    Provider.SendResponse(new ResponseData(Sessionid, 0, $"File {userData.Property} closed"));
-                                    Logger.ToLog($"File {userData.Property} closed");
-                                }
-                                else
-                                    Provider.SendResponse(new ResponseData(Sessionid, 1, "File not found"));
-                            }
-                            else
-                                Provider.SendResponse(new ResponseData(Sessionid, 1, "Here no files"));
-                            break;
-
-
-                        case MainOperation.OpenFolder:
-                            // Check is root folder
-                            if (Path == _rootPath){ 
-                                // Check name folder
-                                if (Directory.GetDirectories(Path).Select(i => new DirectoryInfo(i).Name).Contains(userData.Property)){ 
-                                    // Check permissions
-                                    int code = _permissions[System.IO.Path.Combine(Path, userData.Property)];
-                                    if (code >= _level - 1 && code <= _level + 1)
-                                    {
-                                        // Opening folder
-                                        Path = System.IO.Path.Combine(Path, $"{userData.Property}");
-                                        Code = code;
-                                        Provider.SendResponse(new ResponseData(Sessionid, 0, $"Folder {userData.Property} opened"));
-                                    }
-                                    else
-                                        PermissionError();
-                                }
-                                else 
-                                    Provider.SendResponse(new ResponseData(Sessionid, 1, "Here no this folder"));
-                            }
-                            else 
-                                Provider.SendResponse(new ResponseData(Sessionid, 1, "Here no folders"));
-                            break;
-
-
-                        case MainOperation.CloseFolder:
-                            // Check is not root folder
-                            if (Path != _rootPath){
-                                // Closing folder
-                                Path = Directory.GetParent(Path).FullName;
-                                Code = _permissions[Path];
-                                Provider.SendResponse(new ResponseData(Sessionid, 0, "Folder closed"));
-                            }
-                            else
-                                Provider.SendResponse(new ResponseData(Sessionid, 1, "You in home directory"));
-                            break;
-
-                        case MainOperation.EndSession:
-                            Provider.SendResponse(new ResponseData(Sessionid, 0, EndMessage));
-                            Logger.ToLog(EndLog);
+                    case MainOperation.OpenFile:
+                        SendResponse(session.OpenFile(userData.Property));
+                        // Opening file, if incorrect sessionID inside, then close session here
+                        if (!FileChange())
                             return;
+                        break;
 
-                        default:
-                            Provider.SendResponse(new ResponseData(Sessionid, -1, $"Invalid operation"));
-                            Logger.ToLogAll("Invalid operation");
-                            break;
-                    }
-                }
-                else{
-                    Provider.SendResponse(new ResponseData(-3, "SessionID incorrect. Force closing session."));
-                    Logger.ToLogAll("SessionID incorrect");
-                    return;
+                    case MainOperation.OpenFolder:
+                        SendResponse(session.OpenFolder(userData.Property));
+                        break;
+
+                    case MainOperation.CloseFolder:
+                        SendResponse(session.CloseFolder());
+                        break;
+
+                    case MainOperation.EndSession:
+                        Provider.SendResponse(new ResponseData(SessionID, 0, EndMessage));
+                        Logger.ToLog(EndLog);
+                        return;
+
+                    default:
+                        Provider.SendResponse(new ResponseData(SessionID, -1, $"Invalid operation"));
+                        Logger.ToLogAll("Invalid operation");
+                        break;
                 }
             }
         }

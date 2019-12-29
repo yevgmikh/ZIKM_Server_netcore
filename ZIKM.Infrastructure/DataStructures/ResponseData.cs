@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ZIKM.Infrastructure{
+namespace ZIKM.Infrastructure.DataStructures{
     public struct ResponseData{
         public ResponseData(short code, string message) : this(){
             Code = code;

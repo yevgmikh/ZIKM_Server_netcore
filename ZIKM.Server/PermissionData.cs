@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using ZIKM.Interfaces;
+using ZIKM.Infrastructure.Interfaces;
 
 namespace ZIKM{
     class PermissionData : IPermissionsLevel{

@@ -1,5 +1,5 @@
-using ZIKM.Infrastructure;
-using ZIKM.Interfaces;
+using ZIKM.Infrastructure.DataStructures;
+using ZIKM.Infrastructure.Interfaces;
 
 namespace ZIKM.Permissions{
     class UserPermission : Client{
@@ -17,9 +17,8 @@ namespace ZIKM.Permissions{
         /// Create simple client object
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
-        /// <param name="permissions">Getting data about permissions</param>
         /// <param name="name">Name of user</param>
-        public UserPermission(IProvider provider, IPermissionsLevel permissions, string name): base(provider, permissions, 1) {
+        public UserPermission(IProvider provider, string name): base(provider, 1) {
             UserName = name;
             EndMessage = $"Bye {UserName}";
             EndLog = $"{UserName} disconnect";
@@ -29,7 +28,7 @@ namespace ZIKM.Permissions{
         /// Start session for user
         /// </summary>
         public override void StartSession(){
-            Provider.SendResponse(new ResponseData(Sessionid, 0, $"You {UserName}"));
+            Provider.SendResponse(new ResponseData(SessionID, 0, $"You {UserName}"));
             Logger.ToLog($"{UserName} here");
             Session();
         }

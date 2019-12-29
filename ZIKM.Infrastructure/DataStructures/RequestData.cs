@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ZIKM.Infrastructure{
+namespace ZIKM.Infrastructure.DataStructures{
     public struct RequestData{
         public RequestData(Guid sessionId, int operation, string property){
             SessionId = sessionId;
