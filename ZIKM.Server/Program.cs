@@ -3,32 +3,27 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Collections.Generic;
-using System.IO;
 using ZIKM.Permissions;
 using ZIKM.Infrastructure;
 using System.Threading.Tasks;
-using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using ZIKM.Infrastructure.Interfaces;
 using ZIKM.Infrastructure.Providers;
 using ZIKM.Infrastructure.DataStructures;
+using ZIKM.Infrastructure.Storages.Authorization;
 
-namespace ZIKM
-{
+namespace ZIKM{
     class Program{
-        private static Dictionary<string, List<string>> passwordsBase;
+        private static IAuthorization authorization;
+        private static readonly Storage storage = Enum.Parse<Storage>(new ConfigurationBuilder().AddJsonFile("appsettings.json").Build()["Storage"]);
 
         static void Main(string[] args){
-            IConfigurationRoot configuration = new ConfigurationBuilder()
-                .AddJsonFile("appsettings.json")
-                .Build();
-            Client.StorageType = Enum.Parse<Storage>(configuration["Storage"]);
+            Client.StorageType = storage;
+            Logger.ToLog($"Storage type: {storage}");
 
             TcpListener server=null;
             try{
-                IPAddress localAddr = IPAddress.Parse(GetLocalIPAddress());
-                server = new TcpListener(localAddr, 8000);
+                server = new TcpListener(GetLocalIPAddress(), 8000);
                 GetPasswords();
  
                 server.Start();
@@ -50,12 +45,12 @@ namespace ZIKM
             }
         }
 
-        public static string GetLocalIPAddress(){
+        public static IPAddress GetLocalIPAddress(){
             return NetworkInterface.GetAllNetworkInterfaces()
                 .Where(c => c.NetworkInterfaceType != NetworkInterfaceType.Loopback && c.OperationalStatus == OperationalStatus.Up)
                 .Select(i => i.GetIPProperties()).First().UnicastAddresses
                 .Where(c => c.Address.AddressFamily == AddressFamily.InterNetwork)
-                .Select(j => j.Address).First().ToString();
+                .Select(j => j.Address).First();
         }
 
         /// <summary>
@@ -63,7 +58,15 @@ namespace ZIKM
         /// </summary>
         /// <returns>List of users with passwords</returns>
         private static void GetPasswords(){
-            passwordsBase = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(new ReadOnlySpan<byte>(File.ReadAllBytes("Accounts.json")));
+            switch (storage){
+                case Storage.Files:
+                    authorization = UserAuthorizationStorage.GetAuthorization();
+                    return;
+                case Storage.InternalDB:
+                    throw new NotImplementedException();
+                case Storage.ExternalDB:
+                    throw new NotImplementedException();
+            }
         }
 
         /// <summary>
@@ -78,84 +81,36 @@ namespace ZIKM
                     var captchaCode = captcha.SendCaptcha();
 
                     // Read login request
-                    LoginData userData;
-                    try{
-                        userData = provider.GetLoginRequest();
-                        if (userData.User == null || userData.Password == null || userData.Captcha == null){
-                            provider.SendResponse(new ResponseData(-2, "Invalid request"));
-                            Logger.ToLogAll("Invalid request");
-                            return;
-                        }
-                    }
-                    catch (JsonException){
-                        provider.SendResponse(new ResponseData(-2, "Invalid request"));
-                        Logger.ToLogAll("Invalid request");
+                    if (!provider.GetLoginRequest(out LoginData loginData))
                         return;
-                    }
 
-                    if (passwordsBase.ContainsKey(userData.User)){
-                        if (passwordsBase[userData.User]?.Count == 0){
-                            #region User's spent all passwords
-                            switch (userData.User){
+                    var resault = authorization.SingIn(loginData.User, loginData.Password);
+                    if (resault.Code == 0){
+                        if (loginData.Captcha == captchaCode){
+                            #region Successfull login
+                            switch (loginData.User){
                                 case "Master":
-                                    provider.SendResponse(new ResponseData(2, "Don't think about this"));
-                                    Logger.ToLogAll("Fake master");
+                                    new MasterPermission(provider).StartSession();
                                     break;
                                 case "Senpai":
-                                    provider.SendResponse(new ResponseData(2, "Impostor!"));
-                                    Logger.ToLogAll("Impostor");
+                                    new SenpaiPermission(provider).StartSession();
                                     break;
                                 case "Kouhai":
-                                    provider.SendResponse(new ResponseData(2, "Liar!!!!X|"));
-                                    Logger.ToLogAll("Liar");
+                                    new KouhaiPermission(provider).StartSession();
                                     break;
                                 default:
-                                    provider.SendResponse(new ResponseData(2, "Blocked"));
-                                    Logger.ToLogAll($"{userData.User} blocked");
+                                    new UserPermission(provider, loginData.User).StartSession();
                                     break;
                             }
                             #endregion
                         }
                         else{
-                            if (passwordsBase[userData.User][0] == userData.Password && userData.Captcha == captchaCode){
-                                #region Successfull login
-                                switch (userData.User)
-                                {
-                                    case "Master":
-                                        new MasterPermission(provider).StartSession();
-                                        break;
-                                    case "Senpai":
-                                        new SenpaiPermission(provider).StartSession();
-                                        break;
-                                    case "Kouhai":
-                                        new KouhaiPermission(provider).StartSession();
-                                        break;
-                                    default:
-                                        new UserPermission(provider, userData.User).StartSession();
-                                        break;
-                                }
-                                #endregion
-                            }
-                            else
-                            {
-                                if (passwordsBase[userData.User].Count == 1){
-                                    // User's spent last password 
-                                    provider.SendResponse(new ResponseData(-2, "You blocked"));
-                                    Logger.ToLogAll($"{userData.User} blocked");
-                                }
-                                else{
-                                    // User's written wrong password
-                                    provider.SendResponse(new ResponseData(1, "Try again"));
-                                    Logger.ToLogAll($"{userData.User} errored");
-                                }
-                            }
-                            passwordsBase[userData.User].RemoveAt(0);
+                            Logger.ToLogAll("Wrong captcha code");
+                            provider.SendResponse(new ResponseData(1, "Wrong captcha code"));
                         }
                     }
                     else{
-                        // No user in data
-                        provider.SendResponse(new ResponseData(-1, $"No {userData.User} in data"));
-                        Logger.ToLogAll($"{userData.User} not found");
+                        provider.SendResponse(resault);
                     }
                 }
                 catch (Exception ex){

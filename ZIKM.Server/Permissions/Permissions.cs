@@ -1,9 +1,9 @@
 using System;
-using System.Text.Json;
 using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Infrastructure.Providers;
 using ZIKM.Infrastructure.Storages;
 
 namespace ZIKM.Permissions{
@@ -47,23 +47,6 @@ namespace ZIKM.Permissions{
         }
 
         #region Helpers
-        /// <summary>
-        /// Get user request
-        /// </summary>
-        /// <param name="userData">User request</param>
-        /// <returns>Status of request</returns>
-        private bool GetRequest(out RequestData userData){
-            try{
-                userData = Provider.GetRequest();
-                return true;
-            }
-            catch (JsonException) {
-                Provider.SendResponse(new ResponseData(-2, "Invalid request"));
-                Logger.ToLogAll("Invalid request");
-                userData = new RequestData();
-                return false;
-            }
-        }
 
         /// <summary>
         /// Check user session ID
@@ -89,6 +72,7 @@ namespace ZIKM.Permissions{
             data.SessionId = SessionID;
             Provider.SendResponse(data);
         }
+
         #endregion
 
         /// <summary>
@@ -99,7 +83,7 @@ namespace ZIKM.Permissions{
             IFileOperation file = storage;
             while (true){
                 // Get request
-                if (!GetRequest(out RequestData userData))
+                if (!Provider.GetRequest(out RequestData userData))
                     continue;
 
                 if (!CheckSessionID(userData.SessionId))
@@ -121,7 +105,7 @@ namespace ZIKM.Permissions{
 
                         if (edit.Code == 0){
                             // Get confirm request
-                            while (!GetRequest(out userData)) { }
+                            while (!Provider.GetRequest(out userData)) { }
                             if (!CheckSessionID(userData.SessionId))
                                 return false;
 
@@ -155,7 +139,7 @@ namespace ZIKM.Permissions{
             IDirectoryOperation session = storage;
             while (true){
                 // Get request
-                if (!GetRequest(out RequestData userData))
+                if (!Provider.GetRequest(out RequestData userData))
                     continue;
 
                 if (!CheckSessionID(userData.SessionId))
