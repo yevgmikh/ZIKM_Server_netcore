@@ -11,6 +11,9 @@ using ZIKM.Infrastructure.Interfaces;
 using ZIKM.Infrastructure.Providers;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Storages.Authorization;
+using ZIKM.Infrastructure.Storages.Model;
+using ZIKM.Infrastructure.Storages;
+using ZIKM.Infrastructure.Enums;
 
 namespace ZIKM{
     class Program{
@@ -20,7 +23,7 @@ namespace ZIKM{
         static void Main(string[] args){
             Client.StorageType = storage;
             Logger.ToLog($"Storage type: {storage}");
-
+            
             TcpListener server=null;
             try{
                 server = new TcpListener(GetLocalIPAddress(), 8000);
@@ -63,7 +66,8 @@ namespace ZIKM{
                     authorization = UserAuthorizationStorage.GetAuthorization();
                     return;
                 case Storage.InternalDB:
-                    throw new NotImplementedException();
+                    authorization = new DatabaseStorage();
+                    return;
                 case Storage.ExternalDB:
                     throw new NotImplementedException();
             }
@@ -106,7 +110,7 @@ namespace ZIKM{
                         }
                         else{
                             Logger.ToLogAll("Wrong captcha code");
-                            provider.SendResponse(new ResponseData(1, "Wrong captcha code"));
+                            provider.SendResponse(new ResponseData(StatusCode.BadData, "Wrong captcha code"));
                         }
                     }
                     else{

@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using ZIKM.Infrastructure.DataStructures;
+using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
 
 namespace ZIKM.Infrastructure.Providers{
@@ -16,7 +17,7 @@ namespace ZIKM.Infrastructure.Providers{
                 return true;
             }
             catch (JsonException) {
-                provider.SendResponse(new ResponseData(-2, "Invalid request"));
+                provider.SendResponse(new ResponseData(StatusCode.BadRequest, "Invalid request"));
                 Logger.ToLogAll("Invalid request");
                 userData = new RequestData();
                 return false;
@@ -36,7 +37,7 @@ namespace ZIKM.Infrastructure.Providers{
                 loginData = provider.GetLoginRequest();
                 if (loginData.User == null || loginData.Password == null || loginData.Captcha == null)
                 {
-                    provider.SendResponse(new ResponseData(-2, "Invalid request"));
+                    provider.SendResponse(new ResponseData(StatusCode.BadRequest, "Invalid request"));
                     Logger.ToLogAll("Invalid request");
                     return false;
                 }
@@ -44,7 +45,7 @@ namespace ZIKM.Infrastructure.Providers{
             }
             catch (JsonException)
             {
-                provider.SendResponse(new ResponseData(-2, "Invalid request"));
+                provider.SendResponse(new ResponseData(StatusCode.BadRequest, "Invalid request"));
                 Logger.ToLogAll("Invalid request");
                 loginData = new LoginData();
                 return false;

@@ -40,7 +40,8 @@ namespace ZIKM.Permissions{
                     storage = new FileStorage(level);
                     break;
                 case Storage.InternalDB:
-                    throw new NotImplementedException();
+                    storage = new DatabaseStorage(level);
+                    break;
                 case Storage.ExternalDB:
                     throw new NotImplementedException();
             }
@@ -58,7 +59,7 @@ namespace ZIKM.Permissions{
                 return true;
             }
             else{
-                Provider.SendResponse(new ResponseData(-3, "SessionID incorrect. Force closing session."));
+                Provider.SendResponse(new ResponseData(StatusCode.SessionLost, "SessionID incorrect. Force closing session."));
                 Logger.ToLogAll("SessionID incorrect");
                 return false;
             }
@@ -125,7 +126,7 @@ namespace ZIKM.Permissions{
                         return true;
 
                     default:
-                        Provider.SendResponse(new ResponseData(SessionID, -1, "Invalid operation"));
+                        Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadRequest, "Invalid operation"));
                         Logger.ToLogAll("Invalid operation");
                         break;
                 }
@@ -168,12 +169,12 @@ namespace ZIKM.Permissions{
                         break;
 
                     case MainOperation.EndSession:
-                        Provider.SendResponse(new ResponseData(SessionID, 0, EndMessage));
+                        Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadData, EndMessage));
                         Logger.ToLog(EndLog);
                         return;
 
                     default:
-                        Provider.SendResponse(new ResponseData(SessionID, -1, $"Invalid operation"));
+                        Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadRequest, $"Invalid operation"));
                         Logger.ToLogAll("Invalid operation");
                         break;
                 }

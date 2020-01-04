@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using ZIKM.Infrastructure.DataStructures;
+using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
 
 namespace ZIKM.Infrastructure.Storages{
@@ -39,7 +40,7 @@ namespace ZIKM.Infrastructure.Storages{
         #region Helpers
         private ResponseData PermissionError(){
             Logger.ToLogAll("Not enough rights");
-            return new ResponseData(2, "Not enough rights.");
+            return new ResponseData(StatusCode.NoAccess, "Not enough rights.");
         }
         #endregion
 
@@ -49,7 +50,7 @@ namespace ZIKM.Infrastructure.Storages{
                 .Select(i => $"folder:{new DirectoryInfo(i).Name}").ToList();
             objects.AddRange(Directory.GetFiles(Path)
                 .Select(i => $"file:{new FileInfo(i).Name}"));
-            return new ResponseData(0, string.Join(";", objects));
+            return new ResponseData(StatusCode.Success, string.Join(";", objects));
         }
 
         public ResponseData OpenFile(string name){
@@ -61,13 +62,13 @@ namespace ZIKM.Infrastructure.Storages{
                 {
                     fileName = name;
                     Logger.ToLog($"File {fileName} opened");
-                    return new ResponseData(0, $"File {fileName} opened");
+                    return new ResponseData(StatusCode.Success, $"File {fileName} opened");
                 }
                 else
-                    return new ResponseData(1, "File not found");
+                    return new ResponseData(StatusCode.BadData, "File not found");
             }
             else
-                return new ResponseData(1, "Here no files");
+                return new ResponseData(StatusCode.BadData, "Here no files");
         }
 
         public ResponseData OpenFolder(string path){
@@ -81,16 +82,16 @@ namespace ZIKM.Infrastructure.Storages{
                         // Opening folder
                         Path = System.IO.Path.Combine(Path, path);
                         Code = code;
-                        return new ResponseData(0, $"Folder {path} opened");
+                        return new ResponseData(StatusCode.Success, $"Folder {path} opened");
                     }
                     else
-                        return new ResponseData(2, "Not enough rights.");
+                        return new ResponseData(StatusCode.NoAccess, "Not enough rights.");
                 }
                 else
-                    return new ResponseData(1, "Here no this folder");
+                    return new ResponseData(StatusCode.BadData, "Here no this folder");
             }
             else
-                return new ResponseData(1, "Here no folders");
+                return new ResponseData(StatusCode.BadData, "Here no folders");
         }
 
         public ResponseData CloseFolder(){
@@ -99,10 +100,10 @@ namespace ZIKM.Infrastructure.Storages{
                 // Closing folder
                 Path = Directory.GetParent(Path).FullName;
                 Code = _permissions[Path];
-                return new ResponseData(0, "Folder closed");
+                return new ResponseData(StatusCode.Success, "Folder closed");
             }
             else
-                return new ResponseData(1, "You in home directory");
+                return new ResponseData(StatusCode.BadData, "You in home directory");
         }
         #endregion
 
@@ -110,18 +111,18 @@ namespace ZIKM.Infrastructure.Storages{
 
         public ResponseData ReadFile(){
             if (fileName == null)
-                return new ResponseData(1, "File not opened");
+                return new ResponseData(StatusCode.BadData, "File not opened");
 
             // Check permisions
             if ((Code + 1) == _level || Code == _level){
                 try{
                     var texts = File.ReadAllText(System.IO.Path.Combine(Path, $"{fileName}"));
                     Logger.ToLog($"File {fileName} read");
-                    return new ResponseData(0, $"{texts}");
+                    return new ResponseData(StatusCode.Success, $"{texts}");
                 }
                 catch (Exception e){
                     Logger.ToLogAll($"Error while {fileName} read, {e.Message}");
-                    return new ResponseData(1, $"Error reading{e.Message}");
+                    return new ResponseData(StatusCode.BadData, $"Error reading{e.Message}");
                 }
 
             }
@@ -131,7 +132,7 @@ namespace ZIKM.Infrastructure.Storages{
 
         public ResponseData WriteToFile(string text){
             if (fileName == null)
-                return new ResponseData(1, "File not opened");
+                return new ResponseData(StatusCode.BadData, "File not opened");
 
             // Check permisions
             if ((Code - 1) == _level || Code == _level){
@@ -140,11 +141,11 @@ namespace ZIKM.Infrastructure.Storages{
                         writer.WriteLine(text);
 
                     Logger.ToLog($"Saved to file {fileName}");
-                    return new ResponseData(0, "Successfully");
+                    return new ResponseData(StatusCode.Success, "Successfully");
                 }
                 catch (Exception e){
                     Logger.ToLogAll($"Error while saving file {fileName}, {e.Message}");
-                    return new ResponseData(1, $"Error writing{e.Message}");
+                    return new ResponseData(StatusCode.BadData, $"Error writing{e.Message}");
                 }
             }
             else
@@ -154,7 +155,7 @@ namespace ZIKM.Infrastructure.Storages{
         public ResponseData ChangeFile(string text)
         {
             if (fileName == null)
-                return new ResponseData(1, "File not opened");
+                return new ResponseData(StatusCode.BadData, "File not opened");
 
             if (Code == _level){
                 // Check permisions
@@ -164,11 +165,11 @@ namespace ZIKM.Infrastructure.Storages{
                         writer.WriteLine(text);
 
                     Logger.ToLog($"File {fileName} edited");
-                    return new ResponseData(0, "Updated");
+                    return new ResponseData(StatusCode.Success, "Updated");
                 }
                 catch (Exception e){
                     Logger.ToLogAll($"Error while editing file {fileName}, {e.Message}");
-                    return new ResponseData(1, $"Error editing:{e.Message}");
+                    return new ResponseData(StatusCode.BadData, $"Error editing:{e.Message}");
                 }
             }
             else
@@ -177,12 +178,12 @@ namespace ZIKM.Infrastructure.Storages{
 
         public ResponseData CloseFile(){
             if (fileName == null)
-                return new ResponseData(1, "File not opened");
+                return new ResponseData(StatusCode.BadData, "File not opened");
 
             string name = fileName;
             fileName = null;
             Logger.ToLog($"File {name} closed");
-            return new ResponseData(0, $"File {name} closed");
+            return new ResponseData(StatusCode.Success, $"File {name} closed");
         }
 
         #endregion
