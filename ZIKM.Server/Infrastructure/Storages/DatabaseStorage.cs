@@ -6,6 +6,7 @@ using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
 using ZIKM.Infrastructure.Storages.Model;
+using ZIKM.Server.Infrastructure;
 
 namespace ZIKM.Infrastructure.Storages {
     class DatabaseStorage : IStorage, IAuthorization {
@@ -24,7 +25,7 @@ namespace ZIKM.Infrastructure.Storages {
         #region Helpers
         private ResponseData PermissionError() {
             Logger.ToLogAll("Not enough rights");
-            return new ResponseData(StatusCode.NoAccess, "Not enough rights.");
+            return new ResponseData(StatusCode.NoAccess, Messages.NoAccess);
         }
         #endregion
 
@@ -33,11 +34,17 @@ namespace ZIKM.Infrastructure.Storages {
             var file = _db.FolderTrees.FirstOrDefault(file => file.Name == fileName)?.File;
 
             if (file == null)
-                return new ResponseData(StatusCode.BadData, "File not found");
+                return new ResponseData(StatusCode.ServerError, Messages.NoFile);
 
             if ((file.Permission + 1) == _level || file.Permission == _level) {
-                Logger.ToLog($"File {fileName} read");
-                return new ResponseData(StatusCode.Success, Encoding.UTF8.GetString(file.Data));
+                try {
+                    Logger.ToLog($"File {fileName} read");
+                    return new ResponseData(StatusCode.Success, Encoding.UTF8.GetString(file.Data));
+                }
+                catch (Exception ex) {
+                    Logger.ToLogAll($"Error while reading file {fileName}, {ex.Message}");
+                    return new ResponseData(StatusCode.ServerError, Messages.ReadError(ex));
+                }
             }
             else
                 return PermissionError();
@@ -48,7 +55,7 @@ namespace ZIKM.Infrastructure.Storages {
             var file = _db.FolderTrees.FirstOrDefault(file => file.Name == fileName)?.File;
 
             if (file == null)
-                return new ResponseData(StatusCode.BadData, "File not found");
+                return new ResponseData(StatusCode.ServerError, Messages.NoFile);
 
             if ((file.Permission - 1) == _level || file.Permission == _level) {
                 try {
@@ -60,11 +67,11 @@ namespace ZIKM.Infrastructure.Storages {
                     _db.SaveChanges();
 
                     Logger.ToLog($"Saved to file {fileName}");
-                    return new ResponseData(0, "Successfully");
+                    return new ResponseData(StatusCode.Success, Messages.Written);
                 }
                 catch (Exception ex) {
                     Logger.ToLogAll($"Error while saving file {fileName}, {ex.Message}");
-                    return new ResponseData(StatusCode.ServerError, $"Error writing{ex.Message}");
+                    return new ResponseData(StatusCode.ServerError, Messages.WriteError(ex));
                 }
             }
             else
@@ -75,7 +82,7 @@ namespace ZIKM.Infrastructure.Storages {
             var file = _db.FolderTrees.FirstOrDefault(file => file.Name == fileName)?.File;
 
             if (file == null)
-                return new ResponseData(StatusCode.BadData, "File not found");
+                return new ResponseData(StatusCode.ServerError, Messages.NoFile);
 
             if (file.Permission == _level) {
                 try {
@@ -83,12 +90,12 @@ namespace ZIKM.Infrastructure.Storages {
                     _db.SaveChanges();
 
                     Logger.ToLog($"File {fileName} edited");
-                    return new ResponseData(StatusCode.Success, "Updated");
+                    return new ResponseData(StatusCode.Success, Messages.Updated);
                 }
                 catch (Exception ex)
                 {
                     Logger.ToLogAll($"Error while editing file {fileName}, {ex.Message}");
-                    return new ResponseData(StatusCode.ServerError, $"Error editing:{ex.Message}");
+                    return new ResponseData(StatusCode.ServerError, Messages.EditError(ex));
                 }
             }
             else
@@ -97,12 +104,12 @@ namespace ZIKM.Infrastructure.Storages {
 
         public ResponseData CloseFile() {
             if (fileName == null)
-                return new ResponseData(StatusCode.BadData, "File not opened");
+                return new ResponseData(StatusCode.ServerError, Messages.NotOpened);
 
             string name = fileName;
             fileName = null;
             Logger.ToLog($"File {name} closed");
-            return new ResponseData(StatusCode.Success, $"File {name} closed");
+            return new ResponseData(StatusCode.Success, Messages.FileClosed(name));
         }
         #endregion
 
@@ -118,11 +125,11 @@ namespace ZIKM.Infrastructure.Storages {
             var file = _db.FolderTrees.Include(t => t.ParentFolder).Include(t => t.File)
                 .FirstOrDefault(fol => fol.Name == name && fol.ParentFolderId == folderId).File;
             if (file == null)
-                return new ResponseData(StatusCode.BadData, $"File \"{name}\" not found");
+                return new ResponseData(StatusCode.BadData, Messages.FileNotFound(name));
 
             if (file.Permission >= _level - 1 && file.Permission <= _level + 1) {
                 fileName = name;
-                return new ResponseData(StatusCode.Success, $"Folder \"{name}\" opened");
+                return new ResponseData(StatusCode.Success, Messages.FileOpened(name));
             }
             return PermissionError();
         }
@@ -131,21 +138,21 @@ namespace ZIKM.Infrastructure.Storages {
             var folder = _db.FolderTrees.Include(t => t.ParentFolder).Include(t => t.Folder)
                 .FirstOrDefault(fol => fol.Name == name && fol.ParentFolderId == folderId).Folder;
             if (folder == null)
-                return new ResponseData(StatusCode.BadData, $"Folder \"{name}\" not found");
+                return new ResponseData(StatusCode.BadData, Messages.FolderNotFound(name));
 
             if (folder.Permission >= _level - 1 && folder.Permission <= _level + 1) {
                 folderId = folder.Id;
-                return new ResponseData(StatusCode.Success, $"Folder \"{name}\" opened");
+                return new ResponseData(StatusCode.Success, Messages.FolderOpened(name));
             }
             return PermissionError();
         }
 
         public ResponseData CloseFolder() {
             if (folderId == 1)
-                return new ResponseData(StatusCode.BadData, "You in home directory");
+                return new ResponseData(StatusCode.BadData, Messages.RootFolder);
 
             folderId = _db.FolderTrees.First(obj => obj.FolderId == folderId).ParentFolderId.Value;
-            return new ResponseData(StatusCode.Success, $"Folder closed");
+            return new ResponseData(StatusCode.Success, Messages.FolderClosed);
         }
         #endregion
 
@@ -155,7 +162,7 @@ namespace ZIKM.Infrastructure.Storages {
             if (user == null) {
                 // No user in data
                 Logger.ToLogAll($"{login} not found");
-                return new ResponseData(StatusCode.BadData, $"No {login} in data");
+                return new ResponseData(StatusCode.BadData, Messages.NotFound(login));
             }
 
             var currentPassword = user.Passwords.FirstOrDefault(p => !p.IsUsed);
@@ -164,16 +171,16 @@ namespace ZIKM.Infrastructure.Storages {
                 switch (login){
                     case "Master":
                         Logger.ToLogAll("Fake master");
-                        return new ResponseData(StatusCode.Blocked, "Don't think about this");
+                        return new ResponseData(StatusCode.Blocked, Messages.MasterBlocked);
                     case "Senpai":
                         Logger.ToLogAll("Impostor");
-                        return new ResponseData(StatusCode.Blocked, "Impostor!");
+                        return new ResponseData(StatusCode.Blocked, Messages.SempaiBlocked);
                     case "Kouhai":
                         Logger.ToLogAll("Liar");
-                        return new ResponseData(StatusCode.Blocked, "Liar!!!!X|");
+                        return new ResponseData(StatusCode.Blocked, Messages.KouhaiBlocked);
                     default:
                         Logger.ToLogAll($"{login} blocked");
-                        return new ResponseData(StatusCode.Blocked, "Blocked");
+                        return new ResponseData(StatusCode.Blocked, Messages.Blocked);
                 }
                 #endregion
             }
@@ -187,12 +194,12 @@ namespace ZIKM.Infrastructure.Storages {
                 if (user.Passwords.Count(p => !p.IsUsed) == 0) {
                     // User's spent last password 
                     Logger.ToLogAll($"{login} blocked");
-                    return new ResponseData(StatusCode.Blocked, "You blocked");
+                    return new ResponseData(StatusCode.Blocked, Messages.Blocked);
                 }
                 else {
                     // User's written wrong password
                     Logger.ToLogAll($"{login} errored");
-                    return new ResponseData(StatusCode.BadData, "Try again");
+                    return new ResponseData(StatusCode.BadData, Messages.TryAgain);
                 }
             }
         }

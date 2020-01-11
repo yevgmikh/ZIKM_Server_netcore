@@ -5,6 +5,7 @@ using System.Text.Json;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Server.Infrastructure;
 
 namespace ZIKM.Infrastructure.Storages.Authorization
 {
@@ -32,16 +33,16 @@ namespace ZIKM.Infrastructure.Storages.Authorization
                     {
                         case "Master":
                             Logger.ToLogAll("Fake master");
-                            return new ResponseData(StatusCode.Blocked, "Don't think about this");
+                            return new ResponseData(StatusCode.Blocked, Messages.MasterBlocked);
                         case "Senpai":
                             Logger.ToLogAll("Impostor");
-                            return new ResponseData(StatusCode.Blocked, "Impostor!");
+                            return new ResponseData(StatusCode.Blocked, Messages.SempaiBlocked);
                         case "Kouhai":
                             Logger.ToLogAll("Liar");
-                            return new ResponseData(StatusCode.Blocked, "Liar!!!!X|");
+                            return new ResponseData(StatusCode.Blocked, Messages.KouhaiBlocked);
                         default:
                             Logger.ToLogAll($"{login} blocked");
-                            return new ResponseData(StatusCode.Blocked, "Blocked");
+                            return new ResponseData(StatusCode.Blocked, Messages.Blocked);
                     }
                     #endregion
                 }
@@ -55,12 +56,12 @@ namespace ZIKM.Infrastructure.Storages.Authorization
                         if (passwords[login].Count == 1){
                             // User's spent last password 
                             Logger.ToLogAll($"{login} blocked");
-                            return new ResponseData(StatusCode.Blocked, "You blocked");
+                            return new ResponseData(StatusCode.Blocked, Messages.Blocked);
                         }
                         else{
                             // User's written wrong password
                             Logger.ToLogAll($"{login} errored");
-                            return new ResponseData(StatusCode.BadData, "Try again");
+                            return new ResponseData(StatusCode.BadData, Messages.TryAgain);
                         }
                     }
                 }
@@ -68,7 +69,7 @@ namespace ZIKM.Infrastructure.Storages.Authorization
             else{
                 // No user in data
                 Logger.ToLogAll($"{login} not found");
-                return new ResponseData(StatusCode.BadData, $"No {login} in data");
+                return new ResponseData(StatusCode.BadData, Messages.NotFound(login));
             }
         }
     }
