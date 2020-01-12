@@ -3,13 +3,16 @@ using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Infrastructure.Providers;
-using ZIKM.Infrastructure.Storages;
+using ZIKM.Services.Providers;
+using ZIKM.Services.Storages;
 
-namespace ZIKM.Permissions{
-    abstract class Client{
+namespace ZIKM.Clients {
+    /// <summary>
+    /// Client object for working with data
+    /// </summary>
+    abstract class Client {
         #region Storage
-        private IStorage storage;
+        private readonly IStorage storage;
 
         public static Storage StorageType { get; set; }
         #endregion
@@ -31,16 +34,16 @@ namespace ZIKM.Permissions{
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
         /// <param name="level">User's permission level</param>
-        protected Client(IProvider provider, int level){
+        /// <param name="user">User's name</param>
+        protected Client(IProvider provider, uint level, string user) {
             Provider = provider ?? throw new ArgumentNullException(nameof(provider));
             SessionID = Guid.NewGuid();
-            switch (StorageType)
-            {
+            switch (StorageType) {
                 case Storage.Files:
-                    storage = new FileStorage(level);
+                    storage = new FileStorage(level, user);
                     break;
                 case Storage.InternalDB:
-                    storage = new DatabaseStorage(level);
+                    storage = new DatabaseStorage(level, user);
                     break;
                 case Storage.ExternalDB:
                     throw new NotImplementedException();

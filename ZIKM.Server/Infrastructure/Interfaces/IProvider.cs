@@ -1,8 +1,8 @@
 ﻿using System;
 using ZIKM.Infrastructure.DataStructures;
 
-namespace ZIKM.Infrastructure.Interfaces{
-    public interface IProvider : IDisposable{
+namespace ZIKM.Infrastructure.Interfaces {
+    public interface IProvider : IDisposable {
         /// <summary>
         /// Send response to client
         /// </summary>
@@ -18,5 +18,10 @@ namespace ZIKM.Infrastructure.Interfaces{
         /// </summary>
         /// <returns>Data of login request</returns>
         LoginData GetLoginRequest();
+        /// <summary>
+        /// Send captcha to client
+        /// </summary>
+        /// <param name="fileData">Image to send</param>
+        void SendCaptcha(byte[] fileData);
     }
 }

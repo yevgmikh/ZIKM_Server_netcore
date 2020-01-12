@@ -3,52 +3,52 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using ZIKM.Permissions;
 using ZIKM.Infrastructure;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Infrastructure.Providers;
 using ZIKM.Infrastructure.DataStructures;
-using ZIKM.Infrastructure.Storages.Authorization;
-using ZIKM.Infrastructure.Storages.Model;
-using ZIKM.Infrastructure.Storages;
 using ZIKM.Infrastructure.Enums;
+using ZIKM.Services.Captcha;
+using ZIKM.Services.Providers;
+using ZIKM.Services.Authorization;
+using ZIKM.Clients;
 
-namespace ZIKM{
-    class Program{
+namespace ZIKM {
+    class Program {
         private static IAuthorization authorization;
+        private static ICaptcha captcha;
         private static readonly Storage storage = Enum.Parse<Storage>(new ConfigurationBuilder().AddJsonFile("appsettings.json").Build()["Storage"]);
 
-        static void Main(string[] args){
+        static void Main(string[] args) {
             Client.StorageType = storage;
             Logger.ToLog($"Storage type: {storage}");
-            
+
             TcpListener server=null;
-            try{
+            try {
+                SetServices();
                 server = new TcpListener(GetLocalIPAddress(), 8000);
-                GetPasswords();
  
                 server.Start();
                 Logger.ToLog("Server started");
  
-                while (true){
+                while (true) {
                     TcpClient client = server.AcceptTcpClient();
                     Task.Run(() => Process(client));
                 }
             }
-            catch (Exception ex){
+            catch (Exception ex) {
                 Logger.ToLogAll(ex.Message);
                 Logger.ToLogAll(ex.StackTrace);
             }
-            finally{
+            finally {
                 if (server != null)
                     server.Stop();
                 Logger.ToLog("Server stoped");
             }
         }
 
-        public static IPAddress GetLocalIPAddress(){
+        public static IPAddress GetLocalIPAddress() {
             return NetworkInterface.GetAllNetworkInterfaces()
                 .Where(c => c.NetworkInterfaceType != NetworkInterfaceType.Loopback && c.OperationalStatus == OperationalStatus.Up)
                 .Select(i => i.GetIPProperties()).First().UnicastAddresses
@@ -57,16 +57,18 @@ namespace ZIKM{
         }
 
         /// <summary>
-        /// Get users and passwords to password base
+        /// Set default services
         /// </summary>
-        /// <returns>List of users with passwords</returns>
-        private static void GetPasswords(){
+        private static void SetServices() {
             switch (storage){
                 case Storage.Files:
-                    authorization = UserAuthorizationStorage.GetAuthorization();
+                    authorization = UserFileStorage.Instance;
+                    captcha = SimpleCaptcha.Instance;
                     return;
                 case Storage.InternalDB:
-                    authorization = new DatabaseStorage();
+                    authorization = UserDatabaseStorage.Instance;
+                    captcha = GeneratedCaptcha.Instance;
+                    Logger.ToLog("Using generating captcha");
                     return;
                 case Storage.ExternalDB:
                     throw new NotImplementedException();
@@ -77,47 +79,46 @@ namespace ZIKM{
         /// Login and start session for client
         /// </summary>
         /// <param name="client"></param>
-        private static void Process(TcpClient client){
+        private static void Process(TcpClient client) {
             using IProvider provider = new TCPProvider(client);
-            ICaptcha captcha = new PrimitiveCaptcha((TCPProvider)provider);
-            while (true){
-                try{
-                    var captchaCode = captcha.SendCaptcha();
+            while (true) {
+                try {
+                    provider.SendCaptcha(captcha.GetCaptcha(out string captchaCode));
 
                     // Read login request
                     if (!provider.GetLoginRequest(out LoginData loginData))
                         return;
 
                     var resault = authorization.SingIn(loginData.User, loginData.Password);
-                    if (resault.Code == 0){
+                    if (resault.Code == 0) {
                         if (loginData.Captcha == captchaCode){
                             #region Successfull login
                             switch (loginData.User){
                                 case "Master":
-                                    new MasterPermission(provider).StartSession();
+                                    new MasterClient(provider).StartSession();
                                     break;
                                 case "Senpai":
-                                    new SenpaiPermission(provider).StartSession();
+                                    new SenpaiClient(provider).StartSession();
                                     break;
                                 case "Kouhai":
-                                    new KouhaiPermission(provider).StartSession();
+                                    new KouhaiClient(provider).StartSession();
                                     break;
                                 default:
-                                    new UserPermission(provider, loginData.User).StartSession();
+                                    new UserClient(provider, loginData.User).StartSession();
                                     break;
                             }
                             #endregion
                         }
-                        else{
-                            Logger.ToLogAll("Wrong captcha code");
-                            provider.SendResponse(new ResponseData(StatusCode.BadData, "Wrong captcha code"));
+                        else {
+                            Logger.ToLogAll(LogMessages.WrongCaptcha(loginData.User));
+                            provider.SendResponse(new ResponseData(StatusCode.BadData, Messages.WrongCaptcha));
                         }
                     }
-                    else{
+                    else {
                         provider.SendResponse(resault);
                     }
                 }
-                catch (Exception ex){
+                catch (Exception ex) {
                     Logger.ToLogAll(ex.Message);
                     Logger.ToLogAll(ex.StackTrace);
                     return;

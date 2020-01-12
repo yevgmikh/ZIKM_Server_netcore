@@ -1,7 +1,8 @@
 ﻿using ZIKM.Infrastructure.DataStructures;
 
 namespace ZIKM.Infrastructure.Interfaces{
-    public interface IAuthorization{
+    internal interface IAuthorization
+    {
         /// <summary>
         /// Sing in
         /// </summary>

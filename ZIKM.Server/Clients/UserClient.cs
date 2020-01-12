@@ -1,10 +1,13 @@
+using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Server.Infrastructure;
 
-namespace ZIKM.Permissions {
-    class UserPermission : Client {
+namespace ZIKM.Clients {
+    /// <summary>
+    /// Simple user client object for working with data
+    /// </summary>
+    class UserClient : Client {
         public string UserName { get; private set; }
         /// <summary>
         /// Message when user disconnect
@@ -20,9 +23,9 @@ namespace ZIKM.Permissions {
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
         /// <param name="name">Name of user</param>
-        public UserPermission(IProvider provider, string name): base(provider, 1) {
+        public UserClient(IProvider provider, string name): base(provider, 1, name) {
             UserName = name;
-            EndMessage = $"Bye {UserName}";
+            EndMessage = LogMessages.UserLoggedOut(UserName);
             EndLog = Messages.UserFarewell(UserName);
         }
 
@@ -31,7 +34,7 @@ namespace ZIKM.Permissions {
         /// </summary>
         public override void StartSession() {
             Provider.SendResponse(new ResponseData(SessionID, StatusCode.Success, Messages.UserGreeting(UserName)));
-            Logger.ToLog($"{UserName} here");
+            Logger.ToLog(LogMessages.UserLoggedIn(UserName));
             Session();
         }
     }

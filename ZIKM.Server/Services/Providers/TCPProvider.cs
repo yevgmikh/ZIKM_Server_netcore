@@ -1,16 +1,15 @@
 ﻿using System;
-using System.IO;
 using System.Net.Sockets;
 using System.Text.Json;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Interfaces;
 
-namespace ZIKM.Infrastructure.Providers{
-    public class TCPProvider : IProvider{
+namespace ZIKM.Services.Providers {
+    public class TCPProvider : IProvider {
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
 
-        public TCPProvider(TcpClient client){
+        public TCPProvider(TcpClient client) {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _stream = _client.GetStream();
         }
@@ -19,7 +18,7 @@ namespace ZIKM.Infrastructure.Providers{
         /// Send response to client
         /// </summary>
         /// <param name="response">Response data</param>
-        public void SendResponse(ResponseData response){
+        public void SendResponse(ResponseData response) {
             byte[] data = JsonSerializer.SerializeToUtf8Bytes(response);
             _stream.Write(data, 0, data.Length);
             Logger.ToLogProvider(data, data.Length);
@@ -28,17 +27,16 @@ namespace ZIKM.Infrastructure.Providers{
         /// <summary>
         /// Send captcha to client
         /// </summary>
-        /// <param name="filePath">Path to captcha-file</param>
-        public void SendCaptcha(string filePath){
-            byte[] data = File.ReadAllBytes(filePath);
-            _stream.Write(data, 0, data.Length);
+        /// <param name="fileData">Image to send</param>
+        public void SendCaptcha(byte[] fileData) {
+            _stream.Write(fileData, 0, fileData.Length);
         }
 
         /// <summary>
         /// Read client request
         /// </summary>
         /// <returns>Data of clint request</returns>
-        private ReadOnlySpan<byte> ReadRequest(){
+        private ReadOnlySpan<byte> ReadRequest() {
             byte[] data = new byte[_client.SendBufferSize];
             int bytes = _stream.Read(data);
             Logger.ToLogProvider(data, bytes);
@@ -49,7 +47,7 @@ namespace ZIKM.Infrastructure.Providers{
         /// Get data from client request
         /// </summary>
         /// <returns>Data of client's request</returns>
-        public RequestData GetRequest(){
+        public RequestData GetRequest() {
             return JsonSerializer.Deserialize<RequestData>(ReadRequest());
         }
 
@@ -57,16 +55,16 @@ namespace ZIKM.Infrastructure.Providers{
         /// Get data from client login-request
         /// </summary>
         /// <returns>Data of login request</returns>
-        public LoginData GetLoginRequest(){
+        public LoginData GetLoginRequest() {
             return JsonSerializer.Deserialize<LoginData>(ReadRequest());
         }
 
         #region IDisposable Support
         private bool disposedValue = false; // To detect redundant calls
 
-        protected virtual void Dispose(bool disposing){
-            if (!disposedValue){
-                if (disposing){
+        protected virtual void Dispose(bool disposing) {
+            if (!disposedValue) {
+                if (disposing) {
                     // TODO: dispose managed state (managed objects).
                 }
 
@@ -80,13 +78,13 @@ namespace ZIKM.Infrastructure.Providers{
         }
 
         // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
-        ~TCPProvider(){
+        ~TCPProvider() {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(false);
         }
 
         // This code added to correctly implement the disposable pattern.
-        public void Dispose(){
+        public void Dispose() {
             // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
             // TODO: uncomment the following line if the finalizer is overridden above.

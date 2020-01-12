@@ -1,9 +1,10 @@
-﻿namespace ZIKM.Infrastructure.Interfaces{
-    public interface ICaptcha{
+﻿namespace ZIKM.Infrastructure.Interfaces {
+    internal interface ICaptcha {
         /// <summary>
-        /// Send captcha to client
+        /// Get captcha to send to the client
         /// </summary>
-        /// <returns>Code of captcha</returns>
-        string SendCaptcha();
+        /// <param name="code">Captcha code</param>
+        /// <returns>Image to send</returns>
+        byte[] GetCaptcha(out string code);
     }
 }

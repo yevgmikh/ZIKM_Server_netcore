@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ZIKM.Infrastructure.Storages.Model {
+namespace ZIKM.Services.Storages.Model {
     public class DataFile {
         [Key]
         public int Id { get; set; }

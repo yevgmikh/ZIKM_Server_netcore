@@ -2,29 +2,34 @@
 using System;
 using System.Linq;
 using System.Text;
+using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Infrastructure.Storages.Model;
-using ZIKM.Server.Infrastructure;
+using ZIKM.Services.Storages.Model;
 
-namespace ZIKM.Infrastructure.Storages {
-    class DatabaseStorage : IStorage, IAuthorization {
+namespace ZIKM.Services.Storages {
+    /// <summary>
+    /// Database storage of data
+    /// </summary>
+    class DatabaseStorage : IStorage {
         /// <summary>
         /// User's permission level
         /// </summary>
-        private readonly int _level;
+        private readonly uint _level;
+        private readonly string _user;
         protected string fileName;
         protected int folderId = 1;
         protected StorageContext _db = new StorageContext();
 
-        public DatabaseStorage(int level = -1) {
+        public DatabaseStorage(uint level, string user) {
             _level = level;
+            _user = user;
         }
 
         #region Helpers
         private ResponseData PermissionError() {
-            Logger.ToLogAll("Not enough rights");
+            Logger.ToLogAll(LogMessages.NoAccess(_user));
             return new ResponseData(StatusCode.NoAccess, Messages.NoAccess);
         }
         #endregion
@@ -38,11 +43,11 @@ namespace ZIKM.Infrastructure.Storages {
 
             if ((file.Permission + 1) == _level || file.Permission == _level) {
                 try {
-                    Logger.ToLog($"File {fileName} read");
+                    Logger.ToLog(LogMessages.FileRead(_user, fileName));
                     return new ResponseData(StatusCode.Success, Encoding.UTF8.GetString(file.Data));
                 }
                 catch (Exception ex) {
-                    Logger.ToLogAll($"Error while reading file {fileName}, {ex.Message}");
+                    Logger.ToLogAll(LogMessages.ReadError(_user, fileName, ex));
                     return new ResponseData(StatusCode.ServerError, Messages.ReadError(ex));
                 }
             }
@@ -66,11 +71,11 @@ namespace ZIKM.Infrastructure.Storages {
                     file.Data = data;
                     _db.SaveChanges();
 
-                    Logger.ToLog($"Saved to file {fileName}");
+                    Logger.ToLog(LogMessages.Written(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.Written);
                 }
                 catch (Exception ex) {
-                    Logger.ToLogAll($"Error while saving file {fileName}, {ex.Message}");
+                    Logger.ToLogAll(LogMessages.WriteError(_user, fileName, ex));
                     return new ResponseData(StatusCode.ServerError, Messages.WriteError(ex));
                 }
             }
@@ -89,12 +94,12 @@ namespace ZIKM.Infrastructure.Storages {
                     file.Data = Encoding.UTF8.GetBytes(text);
                     _db.SaveChanges();
 
-                    Logger.ToLog($"File {fileName} edited");
+                    Logger.ToLog(LogMessages.Updated(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.Updated);
                 }
                 catch (Exception ex)
                 {
-                    Logger.ToLogAll($"Error while editing file {fileName}, {ex.Message}");
+                    Logger.ToLogAll(LogMessages.EditError(_user, fileName, ex));
                     return new ResponseData(StatusCode.ServerError, Messages.EditError(ex));
                 }
             }
@@ -108,7 +113,7 @@ namespace ZIKM.Infrastructure.Storages {
 
             string name = fileName;
             fileName = null;
-            Logger.ToLog($"File {name} closed");
+            Logger.ToLog(LogMessages.FileClosed(_user, name));
             return new ResponseData(StatusCode.Success, Messages.FileClosed(name));
         }
         #endregion
@@ -117,7 +122,7 @@ namespace ZIKM.Infrastructure.Storages {
         public ResponseData GetAll() {
             return new ResponseData(StatusCode.Success, string.Join(";", _db.FolderTrees.Include(t => t.ParentFolder)
                 .Where(obj => obj.ParentFolder.Id == folderId)
-                .Include(t => t.Folder)
+                .Include(t => t.Folder).Where(obj => obj.FolderId != folderId)
                 .Select(obj => $"{(obj.Folder != null ? "folder" : "file")}:{obj.Name}")));
         }
 
@@ -129,6 +134,7 @@ namespace ZIKM.Infrastructure.Storages {
 
             if (file.Permission >= _level - 1 && file.Permission <= _level + 1) {
                 fileName = name;
+                Logger.ToLog(LogMessages.FileOpened(_user, fileName));
                 return new ResponseData(StatusCode.Success, Messages.FileOpened(name));
             }
             return PermissionError();
@@ -142,6 +148,7 @@ namespace ZIKM.Infrastructure.Storages {
 
             if (folder.Permission >= _level - 1 && folder.Permission <= _level + 1) {
                 folderId = folder.Id;
+                Logger.ToLog(LogMessages.FolderOpened(_user, name));
                 return new ResponseData(StatusCode.Success, Messages.FolderOpened(name));
             }
             return PermissionError();
@@ -155,53 +162,5 @@ namespace ZIKM.Infrastructure.Storages {
             return new ResponseData(StatusCode.Success, Messages.FolderClosed);
         }
         #endregion
-
-        public ResponseData SingIn(string login, string password) {
-            var user = _db.Users.Include(obj => obj.Passwords).FirstOrDefault(u => u.Name == login);
-
-            if (user == null) {
-                // No user in data
-                Logger.ToLogAll($"{login} not found");
-                return new ResponseData(StatusCode.BadData, Messages.NotFound(login));
-            }
-
-            var currentPassword = user.Passwords.FirstOrDefault(p => !p.IsUsed);
-            if (currentPassword == null) {
-                #region User's spent all passwords
-                switch (login){
-                    case "Master":
-                        Logger.ToLogAll("Fake master");
-                        return new ResponseData(StatusCode.Blocked, Messages.MasterBlocked);
-                    case "Senpai":
-                        Logger.ToLogAll("Impostor");
-                        return new ResponseData(StatusCode.Blocked, Messages.SempaiBlocked);
-                    case "Kouhai":
-                        Logger.ToLogAll("Liar");
-                        return new ResponseData(StatusCode.Blocked, Messages.KouhaiBlocked);
-                    default:
-                        Logger.ToLogAll($"{login} blocked");
-                        return new ResponseData(StatusCode.Blocked, Messages.Blocked);
-                }
-                #endregion
-            }
-            currentPassword.IsUsed = true;
-            _db.SaveChanges();
-
-            if (currentPassword.Password == password) {
-                return new ResponseData();
-            }
-            else {
-                if (user.Passwords.Count(p => !p.IsUsed) == 0) {
-                    // User's spent last password 
-                    Logger.ToLogAll($"{login} blocked");
-                    return new ResponseData(StatusCode.Blocked, Messages.Blocked);
-                }
-                else {
-                    // User's written wrong password
-                    Logger.ToLogAll($"{login} errored");
-                    return new ResponseData(StatusCode.BadData, Messages.TryAgain);
-                }
-            }
-        }
     }
 }

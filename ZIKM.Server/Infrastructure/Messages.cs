@@ -1,6 +1,6 @@
 using System;
 
-namespace ZIKM.Server.Infrastructure {
+namespace ZIKM.Infrastructure {
     internal static class Messages {
         #region Greetings
         internal const string MasterGreeting = "Welcome, Master.";
@@ -11,6 +11,7 @@ namespace ZIKM.Server.Infrastructure {
 
         #region Authorization
         internal const string TryAgain = "Try again";
+        internal const string WrongCaptcha = "Wrong captcha code";
         internal const string Blocked = "You blocked";
         internal const string MasterBlocked = "Don't think about this";
         internal const string SempaiBlocked = "Impostor!";

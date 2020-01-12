@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Text;
 
-namespace ZIKM.Infrastructure.Storages.Model {
+namespace ZIKM.Services.Storages.Model {
     class StorageContext : DbContext {
         public DbSet<User> Users { get; set; }
         public DbSet<DataFile> Files { get; set; }

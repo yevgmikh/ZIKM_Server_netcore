@@ -2,12 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Server.Infrastructure;
 
-namespace ZIKM.Infrastructure.Storages{
+namespace ZIKM.Services.Storages{
+    /// <summary>
+    /// File storage of data
+    /// </summary>
     class FileStorage : IStorage{
         private static readonly string _rootPath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data");
         private static readonly IPermissionsLevel permissions = new PermissionData();
@@ -16,7 +19,8 @@ namespace ZIKM.Infrastructure.Storages{
         /// <summary>
         /// User's permission level
         /// </summary>
-        private readonly int _level;
+        private readonly uint _level;
+        private readonly string _user;
         private string fileName;
 
         /// <summary>
@@ -28,7 +32,8 @@ namespace ZIKM.Infrastructure.Storages{
         /// </summary>
         private int Code { get; set; } = 0;
 
-        public FileStorage(int level){
+        public FileStorage(uint level, string user){
+            _user = user;
             _level = level;
             if (_permissions.ContainsValue(0)){
                 if (!_permissions.ContainsKey(_rootPath))
@@ -40,7 +45,7 @@ namespace ZIKM.Infrastructure.Storages{
 
         #region Helpers
         private ResponseData PermissionError(){
-            Logger.ToLogAll("Not enough rights");
+            Logger.ToLogAll(LogMessages.NoAccess(_user));
             return new ResponseData(StatusCode.NoAccess, Messages.NoAccess);
         }
         #endregion
@@ -62,7 +67,7 @@ namespace ZIKM.Infrastructure.Storages{
                 if (Directory.GetFiles(Path).Select(i => new FileInfo(i).Name).Contains(name))
                 {
                     fileName = name;
-                    Logger.ToLog($"File {fileName} opened");
+                    Logger.ToLog(LogMessages.FileOpened(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.FileOpened(fileName));
                 }
                 else
@@ -118,11 +123,11 @@ namespace ZIKM.Infrastructure.Storages{
             if ((Code + 1) == _level || Code == _level){
                 try{
                     var texts = File.ReadAllText(System.IO.Path.Combine(Path, $"{fileName}"));
-                    Logger.ToLog($"File {fileName} read");
+                    Logger.ToLog(LogMessages.FileRead(_user, fileName));
                     return new ResponseData(StatusCode.Success, $"{texts}");
                 }
                 catch (Exception e){
-                    Logger.ToLogAll($"Error while {fileName} read, {e.Message}");
+                    Logger.ToLogAll(LogMessages.ReadError(_user, fileName, e));
                     return new ResponseData(StatusCode.ServerError, Messages.ReadError(e));
                 }
 
@@ -141,11 +146,11 @@ namespace ZIKM.Infrastructure.Storages{
                     using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(Path, $"{fileName}"), true))
                         writer.WriteLine(text);
 
-                    Logger.ToLog($"Saved to file {fileName}");
+                    Logger.ToLog(LogMessages.Written(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.Written);
                 }
                 catch (Exception e){
-                    Logger.ToLogAll($"Error while saving file {fileName}, {e.Message}");
+                    Logger.ToLogAll(LogMessages.WriteError(_user, fileName, e));
                     return new ResponseData(StatusCode.ServerError, Messages.WriteError(e));
                 }
             }
@@ -165,11 +170,11 @@ namespace ZIKM.Infrastructure.Storages{
                     using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(Path, $"{fileName}"), false))
                         writer.WriteLine(text);
 
-                    Logger.ToLog($"File {fileName} edited");
+                    Logger.ToLog(LogMessages.Updated(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.Updated);
                 }
                 catch (Exception e){
-                    Logger.ToLogAll($"Error while editing file {fileName}, {e.Message}");
+                    Logger.ToLogAll(LogMessages.EditError(_user, fileName, e));
                     return new ResponseData(StatusCode.ServerError, Messages.EditError(e));
                 }
             }
@@ -183,7 +188,7 @@ namespace ZIKM.Infrastructure.Storages{
 
             string name = fileName;
             fileName = null;
-            Logger.ToLog($"File {name} closed");
+            Logger.ToLog(LogMessages.FileClosed(_user, name));
             return new ResponseData(StatusCode.Success, Messages.FileClosed(name));
         }
 
