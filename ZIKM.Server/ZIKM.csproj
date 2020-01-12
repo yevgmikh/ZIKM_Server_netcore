@@ -7,6 +7,7 @@
     <Content Include="$(ProjectDir)Captchas\**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="$(ProjectDir)Data\**" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="$(ProjectDir)Accounts.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="$(ProjectDir)LiberationSerif-Italic.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.0" />

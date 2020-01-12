@@ -20,7 +20,8 @@ namespace ZIKM {
         private static readonly IConfiguration configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
         private static IAuthorization authorization;
         private static ICaptcha captcha;
-        private static readonly Storage storage = Enum.Parse<Storage>(configuration["Storage"]);
+        private static readonly Storage storage = 
+            Enum.Parse<Storage>(Environment.GetEnvironmentVariable("Storage") ?? configuration["Storage"]);
 
         static void Main(string[] args) {
             Client.StorageType = storage;
@@ -41,7 +42,7 @@ namespace ZIKM {
             }
             catch (Exception ex) {
                 Logger.ToLogAll(ex.Message);
-                Logger.ToLogAll(ex.StackTrace);
+                Logger.ToLogAll(ex.InnerException?.Message);
             }
             finally {
                 if (server != null)
@@ -126,7 +127,7 @@ namespace ZIKM {
                 }
                 catch (Exception ex) {
                     Logger.ToLogAll(ex.Message);
-                    Logger.ToLogAll(ex.StackTrace);
+                    Logger.ToLogAll(ex.InnerException?.Message);
                     return;
                 }
             }

@@ -19,14 +19,19 @@ namespace ZIKM.Services.Captcha {
         /// </summary>
         public static GeneratedCaptcha Instance { get; } = new GeneratedCaptcha();
 
-        private readonly Font font = SystemFonts.CreateFont("Verdana", 48, FontStyle.Italic);
-        private readonly TextGraphicsOptions options = new TextGraphicsOptions { Antialias = true, WrapTextWidth = 780 };
-        private readonly PointF location = new PointF(10, 20);
+        private readonly Font font;
+        private readonly TextGraphicsOptions options = new TextGraphicsOptions { Antialias = true };
+        private readonly PointF location = new PointF(15, 20);
 
         /// <summary>
         /// Create class for generating captcha
         /// </summary>
-        private GeneratedCaptcha() { }
+        private GeneratedCaptcha() {
+            FontFamily fontFamily = new FontCollection()
+                .Install(Path.Combine(Directory.GetCurrentDirectory(), "LiberationSerif-Italic.ttf"));
+            
+            font = new Font(fontFamily, 48);
+        }
 
         /// <summary>
         /// Generate image with code
@@ -52,7 +57,7 @@ namespace ZIKM.Services.Captcha {
 
         public byte[] GetCaptcha(out string code) {
             Random random = new Random();
-            code = random.Next(0, 999999).ToString("000000");
+            code = random.Next(0, 9999999).ToString("0000000");
 
             using Stream stream = Generate(code);
             byte[] buffer = new byte[stream.Length];

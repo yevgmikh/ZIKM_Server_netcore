@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1 AS base
 WORKDIR /app
 VOLUME [ "/app/Data", "/app/Logs", "/app/Captchas" ]
+ENV Storage=Files Server=localhost UserID=root Password=pass123 DBName=ZikmDB
 EXPOSE 8000
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
