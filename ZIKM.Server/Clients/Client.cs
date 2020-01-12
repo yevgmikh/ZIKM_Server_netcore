@@ -46,7 +46,8 @@ namespace ZIKM.Clients {
                     storage = new DatabaseStorage(level, user);
                     break;
                 case Storage.ExternalDB:
-                    throw new NotImplementedException();
+                    storage = new DatabaseStorage(level, user);
+                    break;
             }
         }
 

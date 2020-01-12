@@ -13,12 +13,14 @@ using ZIKM.Services.Captcha;
 using ZIKM.Services.Providers;
 using ZIKM.Services.Authorization;
 using ZIKM.Clients;
+using ZIKM.Services.Storages.Model;
 
 namespace ZIKM {
     class Program {
+        private static readonly IConfiguration configuration = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
         private static IAuthorization authorization;
         private static ICaptcha captcha;
-        private static readonly Storage storage = Enum.Parse<Storage>(new ConfigurationBuilder().AddJsonFile("appsettings.json").Build()["Storage"]);
+        private static readonly Storage storage = Enum.Parse<Storage>(configuration["Storage"]);
 
         static void Main(string[] args) {
             Client.StorageType = storage;
@@ -71,7 +73,11 @@ namespace ZIKM {
                     Logger.ToLog("Using generating captcha");
                     return;
                 case Storage.ExternalDB:
-                    throw new NotImplementedException();
+                    StorageContext.Connection = configuration.GetConnectionString("StorageContext");
+                    authorization = UserDatabaseStorage.Instance;
+                    captcha = GeneratedCaptcha.Instance;
+                    Logger.ToLog("Using generating captcha");
+                    return;
             }
         }
 

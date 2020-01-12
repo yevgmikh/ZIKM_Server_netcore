@@ -3,6 +3,8 @@ using System.Text;
 
 namespace ZIKM.Services.Storages.Model {
     class StorageContext : DbContext {
+        public static string Connection { get; set; }
+
         public DbSet<User> Users { get; set; }
         public DbSet<DataFile> Files { get; set; }
         public DbSet<Folder> Folders { get; set; }
@@ -14,7 +16,10 @@ namespace ZIKM.Services.Storages.Model {
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
-            optionsBuilder.UseSqlite(@"Data Source=StorageDB.db;");
+            if (Connection == null)
+                optionsBuilder.UseSqlite(@"Data Source=StorageDB.db;");
+            else
+                optionsBuilder.UseMySql(Connection);
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<FolderTree>().HasAlternateKey(t => new { t.Name, t.ParentFolderId });
