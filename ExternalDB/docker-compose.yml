@@ -1,0 +1,25 @@
+version: '3.1'
+
+services:
+
+  db:
+    image: mariadb
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: CHANGE-THIS-PASSWORD
+      MYSQL_DATABASE: ZikmDB
+    volumes: 
+      - ./AddData/Data:/var/lib/mysql
+
+  zikm:
+    build: ./..
+    restart: always
+    environment:
+        Storage: ExternalDB
+        Password: CHANGE-THIS-PASSWORD
+    volumes: 
+      - ./AppData/Logs:/app/Logs
+    ports:
+      - 8000:8000
+    depends_on: 
+      - db
