@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.IO;
 using System.Text;
 
 namespace ZIKM.Services.Storages.Model {
@@ -9,13 +10,13 @@ namespace ZIKM.Services.Storages.Model {
             get => connection; set {
                 connection = value;
                 if (Environment.GetEnvironmentVariable("Server") != null)
-                    connection.Replace("localhost", Environment.GetEnvironmentVariable("Server"));
+                    connection = connection.Replace("localhost", Environment.GetEnvironmentVariable("Server"));
                 if (Environment.GetEnvironmentVariable("UserID") != null)
-                    connection.Replace("root", Environment.GetEnvironmentVariable("UserID"));
+                    connection = connection.Replace("root", Environment.GetEnvironmentVariable("UserID"));
                 if (Environment.GetEnvironmentVariable("Password") != null)
-                    connection.Replace("password", Environment.GetEnvironmentVariable("Password"));
+                    connection = connection.Replace("password", Environment.GetEnvironmentVariable("Password"));
                 if (Environment.GetEnvironmentVariable("DBName") != null)
-                    connection.Replace("ZikmDB", Environment.GetEnvironmentVariable("DBName"));
+                    connection = connection.Replace("ZikmDB", Environment.GetEnvironmentVariable("DBName"));
             }
         }
 
@@ -30,8 +31,10 @@ namespace ZIKM.Services.Storages.Model {
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
-            if (Connection == null)
-                optionsBuilder.UseSqlite(@"Data Source=StorageDB.db;");
+            if (Connection == null) {
+                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "DB"));
+                optionsBuilder.UseSqlite($@"Data Source={Path.Combine("DB", "StorageDB.db")};");
+            }
             else
                 optionsBuilder.UseMySql(Connection);
         }

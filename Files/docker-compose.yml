@@ -5,9 +5,10 @@ services:
     build: ./..
     restart: always
     environment:
-      Storage: InternalDB
+      Storage: Files
     volumes: 
-      - ./AppData/Data:/app/DB
+      - ./AppData/Data:/app/Data
+      - ./AppData/Captchas:/app/Captchas
       - ./Logs:/app/Logs
     ports:
       - 8000:8000

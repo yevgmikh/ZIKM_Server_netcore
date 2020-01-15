@@ -340,5 +340,13 @@ ASALocalRun/
 healthchecksdb
 
 .vscode
+
+Files/AppData
+Files/Captchas
+Files/Logs
+
 InternalDB/AppData
+InternalDB/Logs
+
 ExternalDB/AppData
+ExternalDB/Logs

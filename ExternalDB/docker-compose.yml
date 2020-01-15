@@ -5,20 +5,22 @@ services:
   db:
     image: mariadb
     restart: always
+    hostname: db
     environment:
-      MYSQL_ROOT_PASSWORD: CHANGE-THIS-PASSWORD
+      MYSQL_ROOT_PASSWORD: CHANGE-ME-BEFORE-RUN
       MYSQL_DATABASE: ZikmDB
     volumes: 
-      - ./AddData/Data:/var/lib/mysql
+      - ./AppData/Data:/var/lib/mysql
 
   zikm:
     build: ./..
     restart: always
     environment:
         Storage: ExternalDB
-        Password: CHANGE-THIS-PASSWORD
+        Server: db
+        Password: CHANGE-ME-BEFORE-RUN
     volumes: 
-      - ./AppData/Logs:/app/Logs
+      - ./Logs:/app/Logs
     ports:
       - 8000:8000
     depends_on: 
