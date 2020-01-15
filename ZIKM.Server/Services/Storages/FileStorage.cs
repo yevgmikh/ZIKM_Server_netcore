@@ -11,10 +11,31 @@ namespace ZIKM.Services.Storages{
     /// <summary>
     /// File storage of data
     /// </summary>
-    class FileStorage : IStorage{
+    class FileStorage : IStorage {
         private static readonly string _rootPath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data");
         private static readonly IPermissionsLevel permissions = new PermissionData();
         private static readonly Dictionary<string, int> _permissions = new Dictionary<string, int>(permissions.Levels);
+
+        static FileStorage() {
+            // Adding default files
+            Directory.CreateDirectory(System.IO.Path.Combine(_rootPath, "1"));
+            Directory.CreateDirectory(System.IO.Path.Combine(_rootPath, "2"));
+            Directory.CreateDirectory(System.IO.Path.Combine(_rootPath, "3"));
+            Directory.CreateDirectory(System.IO.Path.Combine(_rootPath, "4"));
+            
+            if (!File.Exists(System.IO.Path.Combine(_rootPath, "1", "file.txt")))
+                using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(_rootPath, "1", "file.txt"), true))
+                    writer.WriteLine("some text");
+            if (!File.Exists(System.IO.Path.Combine(_rootPath, "2", "some.txt")))
+                using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(_rootPath, "2", "some.txt"), true))
+                    writer.WriteLine("some thing");
+            if (!File.Exists(System.IO.Path.Combine(_rootPath, "3", "Plans.txt")))
+                using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(_rootPath, "3", "Plans.txt"), true))
+                    writer.WriteLine("some plans");
+            if (!File.Exists(System.IO.Path.Combine(_rootPath, "4", "Reports.txt")))
+                using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(_rootPath, "4", "Reports.txt"), true))
+                    writer.WriteLine("some reports");
+        }
 
         /// <summary>
         /// User's permission level
@@ -32,7 +53,7 @@ namespace ZIKM.Services.Storages{
         /// </summary>
         private int Code { get; set; } = 0;
 
-        public FileStorage(uint level, string user){
+        public FileStorage(uint level, string user) {
             _user = user;
             _level = level;
             if (_permissions.ContainsValue(0)){
@@ -44,7 +65,7 @@ namespace ZIKM.Services.Storages{
         }
 
         #region Helpers
-        private ResponseData PermissionError(){
+        private ResponseData PermissionError() {
             Logger.ToLogAll(LogMessages.NoAccess(_user));
             return new ResponseData(StatusCode.NoAccess, Messages.NoAccess);
         }

@@ -12,12 +12,16 @@ namespace ZIKM.Services.Captcha {
         /// </summary>
         public static SimpleCaptcha Instance { get; } = new SimpleCaptcha();
 
-        private static readonly string _path = Path.Combine(Directory.GetCurrentDirectory(), "Captchas");
+        private readonly string _path = Path.Combine(Directory.GetCurrentDirectory(), "Captchas");
 
         /// <summary>
         /// Create class for simple captcha
         /// </summary>
-        private SimpleCaptcha() { }
+        private SimpleCaptcha() {
+            if (Directory.GetFiles(_path).Length == 0) {
+                throw new Exception("Files for simple captcha class not found.");
+            }
+        }
 
         public byte[] GetCaptcha(out string code) {
             // Choose captcha
