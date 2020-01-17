@@ -1,6 +1,5 @@
 FROM mcr.microsoft.com/dotnet/core/runtime:3.1 AS base
 WORKDIR /app
-VOLUME [ "/app/Data", "/app/Logs", "/app/Captchas" ]
 EXPOSE 8000
 
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build
