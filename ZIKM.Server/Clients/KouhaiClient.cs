@@ -15,7 +15,7 @@ namespace ZIKM.Clients {
         /// Create kouhai client object
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
-        public KouhaiClient(IProvider provider) : base(provider, 2, "Kouhai") { }
+        public KouhaiClient(IProvider provider) : base(provider, PermissionLevel.Kouhai, "Kouhai") { }
 
         /// <summary>
         /// Start session for kouhai

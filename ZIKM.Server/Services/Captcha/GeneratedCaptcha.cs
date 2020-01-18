@@ -14,10 +14,6 @@ namespace ZIKM.Services.Captcha {
     /// Generate simple captcha in png format
     /// </summary>
     internal class GeneratedCaptcha : ICaptcha {
-        /// <summary>
-        /// Get instance of generating captcha class
-        /// </summary>
-        public static GeneratedCaptcha Instance { get; } = new GeneratedCaptcha();
 
         private readonly Font font;
         private readonly TextGraphicsOptions options = new TextGraphicsOptions { Antialias = true };
@@ -26,7 +22,8 @@ namespace ZIKM.Services.Captcha {
         /// <summary>
         /// Create class for generating captcha
         /// </summary>
-        private GeneratedCaptcha() {
+        public GeneratedCaptcha() {
+            Logger.ToLog("Using generating captcha");
             FontFamily fontFamily = new FontCollection()
                 .Install(Path.Combine(Directory.GetCurrentDirectory(), "LiberationSerif-Italic.ttf"));
             

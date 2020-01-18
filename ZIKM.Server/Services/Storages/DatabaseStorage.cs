@@ -12,7 +12,7 @@ namespace ZIKM.Services.Storages {
     /// <summary>
     /// Database storage of data
     /// </summary>
-    class DatabaseStorage : IStorage {
+    internal class DatabaseStorage : IStorage {
         /// <summary>
         /// User's permission level
         /// </summary>
@@ -20,7 +20,7 @@ namespace ZIKM.Services.Storages {
         private readonly string _user;
         protected string fileName;
         protected int folderId = 1;
-        protected StorageContext _db = new StorageContext();
+        protected StorageContext _db = IoC.GetService<StorageContext>();
 
         public DatabaseStorage(uint level, string user) {
             _level = level;

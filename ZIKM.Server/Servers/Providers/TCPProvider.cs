@@ -4,7 +4,7 @@ using System.Text.Json;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Interfaces;
 
-namespace ZIKM.Services.Providers {
+namespace ZIKM.Servers.Providers {
     public class TCPProvider : IProvider {
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;

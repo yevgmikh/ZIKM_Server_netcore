@@ -7,6 +7,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZIKM", "ZIKM.Server\ZIKM.cs
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{C5F7E3D2-DFC3-4BD9-8180-185D5301CDF6}"
 	ProjectSection(SolutionItems) = preProject
+		Files\docker-compose.yml = Files\docker-compose.yml
+		InternalDB\docker-compose.yml = InternalDB\docker-compose.yml
+		ExternalDB\docker-compose.yml = ExternalDB\docker-compose.yml
 		Dockerfile = Dockerfile
 	EndProjectSection
 EndProject

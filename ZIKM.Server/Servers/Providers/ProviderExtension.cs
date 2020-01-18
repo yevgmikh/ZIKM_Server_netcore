@@ -3,7 +3,7 @@ using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
 
-namespace ZIKM.Services.Providers {
+namespace ZIKM.Servers.Providers {
     public static class ProviderExtension {
         /// <summary>
         /// Get user request

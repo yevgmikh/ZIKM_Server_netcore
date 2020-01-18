@@ -1,6 +1,6 @@
-﻿namespace ZIKM.Infrastructure.Interfaces{
+﻿namespace ZIKM.Infrastructure.Interfaces {
     /// <summary>
     /// Storage of data
     /// </summary>
-    public interface IStorage : IFileOperation, IDirectoryOperation { }
+    internal interface IStorage : IFileOperation, IDirectoryOperation { }
 }

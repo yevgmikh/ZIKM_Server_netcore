@@ -7,17 +7,13 @@ namespace ZIKM.Services.Captcha {
     /// Simple captcha form perpeared .jpg files
     /// </summary>
     internal class SimpleCaptcha : ICaptcha {
-        /// <summary>
-        /// Get instance of simple captcha class
-        /// </summary>
-        public static SimpleCaptcha Instance { get; } = new SimpleCaptcha();
 
         private readonly string _path = Path.Combine(Directory.GetCurrentDirectory(), "Captchas");
 
         /// <summary>
         /// Create class for simple captcha
         /// </summary>
-        private SimpleCaptcha() {
+        public SimpleCaptcha() {
             if (Directory.GetFiles(_path).Length == 0) {
                 throw new Exception("Files for simple captcha class not found.");
             }

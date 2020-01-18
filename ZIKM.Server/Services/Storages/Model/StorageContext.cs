@@ -1,24 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.IO;
 using System.Text;
 
 namespace ZIKM.Services.Storages.Model {
     class StorageContext : DbContext {
-        private static string connection;
-        public static string Connection {
-            get => connection; set {
-                connection = value;
-                if (Environment.GetEnvironmentVariable("Server") != null)
-                    connection = connection.Replace("localhost", Environment.GetEnvironmentVariable("Server"));
-                if (Environment.GetEnvironmentVariable("UserID") != null)
-                    connection = connection.Replace("root", Environment.GetEnvironmentVariable("UserID"));
-                if (Environment.GetEnvironmentVariable("Password") != null)
-                    connection = connection.Replace("password", Environment.GetEnvironmentVariable("Password"));
-                if (Environment.GetEnvironmentVariable("DBName") != null)
-                    connection = connection.Replace("ZikmDB", Environment.GetEnvironmentVariable("DBName"));
-            }
-        }
 
         public DbSet<User> Users { get; set; }
         public DbSet<DataFile> Files { get; set; }
@@ -26,18 +10,10 @@ namespace ZIKM.Services.Storages.Model {
         public DbSet<FolderTree> FolderTrees { get; set; }
         public DbSet<UserPassword> UserPasswords { get; set; }
 
-        public StorageContext() {
+        public StorageContext(DbContextOptions<StorageContext> options) : base(options) {
             Database.EnsureCreated();
         }
 
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
-            if (Connection == null) {
-                Directory.CreateDirectory(Path.Combine(Directory.GetCurrentDirectory(), "DB"));
-                optionsBuilder.UseSqlite($@"Data Source={Path.Combine("DB", "StorageDB.db")};");
-            }
-            else
-                optionsBuilder.UseMySql(Connection);
-        }
         protected override void OnModelCreating(ModelBuilder modelBuilder) {
             modelBuilder.Entity<FolderTree>().HasAlternateKey(t => new { t.Name, t.ParentFolderId });
 

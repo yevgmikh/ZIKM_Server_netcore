@@ -23,7 +23,7 @@ namespace ZIKM.Clients {
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
         /// <param name="name">Name of user</param>
-        public UserClient(IProvider provider, string name): base(provider, 1, name) {
+        public UserClient(IProvider provider, string name): base(provider, PermissionLevel.User, name) {
             UserName = name;
             EndMessage = LogMessages.UserLoggedOut(UserName);
             EndLog = Messages.UserFarewell(UserName);

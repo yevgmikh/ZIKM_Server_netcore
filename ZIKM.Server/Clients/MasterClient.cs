@@ -15,7 +15,7 @@ namespace ZIKM.Clients {
         /// Create master client object
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
-        public MasterClient(IProvider provider) : base(provider, 4, "Master") { }
+        public MasterClient(IProvider provider) : base(provider, PermissionLevel.Master, "Master") { }
 
         /// <summary>
         /// Start session for Master

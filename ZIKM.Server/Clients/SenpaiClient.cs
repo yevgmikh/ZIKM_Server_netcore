@@ -15,7 +15,7 @@ namespace ZIKM.Clients {
         /// Create senpai client object
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
-        public SenpaiClient(IProvider provider) : base(provider, 3, "Senpai") { }
+        public SenpaiClient(IProvider provider) : base(provider, PermissionLevel.Senpai, "Senpai") { }
 
         /// <summary>
         /// Start session for senpai

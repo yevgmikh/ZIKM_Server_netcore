@@ -18,6 +18,8 @@ namespace ZIKM.Infrastructure {
         internal const string MasterBlocked = "Fake master";
         internal const string SempaiBlocked = "Impostor";
         internal const string KouhaiBlocked = "Liar";
+
+        internal const string Disconnected = "Lost connection to client";
         #endregion
 
         #region Logouts

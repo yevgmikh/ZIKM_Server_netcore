@@ -11,14 +11,10 @@ namespace ZIKM.Services.Authorization {
     /// Database user authorization storage
     /// </summary>
     internal class UserDatabaseStorage : IAuthorization {
-        /// <summary>
-        /// Get instance of database user authorization storage class
-        /// </summary>
-        public static UserDatabaseStorage Instance { get; } = new UserDatabaseStorage();
 
-        protected StorageContext _db = new StorageContext();
+        protected StorageContext _db = IoC.GetService<StorageContext>();
 
-        private UserDatabaseStorage() { }
+        public UserDatabaseStorage() { }
 
         public ResponseData SingIn(string login, string password) {
             var user = _db.Users.Include(obj => obj.Passwords).FirstOrDefault(u => u.Name == login);

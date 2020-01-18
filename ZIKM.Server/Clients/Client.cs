@@ -3,19 +3,14 @@ using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Services.Providers;
-using ZIKM.Services.Storages;
+using ZIKM.Servers.Providers;
 
 namespace ZIKM.Clients {
     /// <summary>
     /// Client object for working with data
     /// </summary>
     abstract class Client {
-        #region Storage
-        private readonly IStorage storage;
-
-        public static Storage StorageType { get; set; }
-        #endregion
+        protected readonly IStorage storage;
 
         protected Guid SessionID { get; set; }
         protected IProvider Provider { get; set; }
@@ -35,20 +30,10 @@ namespace ZIKM.Clients {
         /// <param name="provider">Provider for sending data</param>
         /// <param name="level">User's permission level</param>
         /// <param name="user">User's name</param>
-        protected Client(IProvider provider, uint level, string user) {
+        protected Client(IProvider provider, PermissionLevel level, string user) {
             Provider = provider ?? throw new ArgumentNullException(nameof(provider));
             SessionID = Guid.NewGuid();
-            switch (StorageType) {
-                case Storage.Files:
-                    storage = new FileStorage(level, user);
-                    break;
-                case Storage.InternalDB:
-                    storage = new DatabaseStorage(level, user);
-                    break;
-                case Storage.ExternalDB:
-                    storage = new DatabaseStorage(level, user);
-                    break;
-            }
+            storage = IoC.GetService<IStorageFactory>().GetStorage(level, user);
         }
 
         #region Helpers

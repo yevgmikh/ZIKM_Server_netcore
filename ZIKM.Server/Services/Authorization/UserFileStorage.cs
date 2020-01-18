@@ -12,14 +12,10 @@ namespace ZIKM.Services.Authorization {
     /// File user authorization storage
     /// </summary>
     internal class UserFileStorage : IAuthorization {
-        /// <summary>
-        /// Get instance of file user authorization storage class
-        /// </summary>
-        public static UserFileStorage Instance { get; } = new UserFileStorage();
 
         private readonly Dictionary<string, List<string>> passwords;
 
-        private UserFileStorage() {
+        public UserFileStorage() {
             passwords = JsonSerializer.Deserialize<Dictionary<string, List<string>>>(new ReadOnlySpan<byte>(File.ReadAllBytes("Accounts.json")));
         }
 

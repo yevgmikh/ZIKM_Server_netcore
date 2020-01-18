@@ -1,10 +1,10 @@
 ﻿using ZIKM.Infrastructure.DataStructures;
 
-namespace ZIKM.Infrastructure.Interfaces{
+namespace ZIKM.Infrastructure.Interfaces {
     /// <summary>
     /// Directory operations
     /// </summary>
-    public interface IDirectoryOperation{
+    internal interface IDirectoryOperation {
         /// <summary>
         /// Get all folders and files of current directory
         /// </summary>

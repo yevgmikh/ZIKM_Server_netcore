@@ -1,10 +1,10 @@
 ﻿using ZIKM.Infrastructure.DataStructures;
 
-namespace ZIKM.Infrastructure.Interfaces{
+namespace ZIKM.Infrastructure.Interfaces {
     /// <summary>
     /// File operations
     /// </summary>
-    public interface IFileOperation{
+    internal interface IFileOperation {
         /// <summary>
         /// Read from current opened file
         /// </summary>
