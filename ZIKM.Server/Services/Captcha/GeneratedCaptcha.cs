@@ -7,9 +7,10 @@ using SixLabors.ImageSharp.Processing.Processors.Text;
 using SixLabors.Primitives;
 using System;
 using System.IO;
-using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Server.Infrastructure.Interfaces;
+using ZIKM.Server.Utils;
 
-namespace ZIKM.Services.Captcha {
+namespace ZIKM.Server.Services.Captcha {
     /// <summary>
     /// Generate simple captcha in png format
     /// </summary>
@@ -23,7 +24,6 @@ namespace ZIKM.Services.Captcha {
         /// Create class for generating captcha
         /// </summary>
         public GeneratedCaptcha() {
-            Logger.ToLog("Using generating captcha");
             FontFamily fontFamily = new FontCollection()
                 .Install(Path.Combine(Directory.GetCurrentDirectory(), "LiberationSerif-Italic.ttf"));
             

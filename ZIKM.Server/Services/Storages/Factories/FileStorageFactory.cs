@@ -1,7 +1,7 @@
-﻿using ZIKM.Infrastructure;
-using ZIKM.Infrastructure.Interfaces;
+﻿using ZIKM.Server.Infrastructure;
+using ZIKM.Server.Infrastructure.Interfaces;
 
-namespace ZIKM.Services.Storages.Factories {
+namespace ZIKM.Server.Services.Storages.Factories {
     /// <summary>
     /// File storage factory
     /// </summary>

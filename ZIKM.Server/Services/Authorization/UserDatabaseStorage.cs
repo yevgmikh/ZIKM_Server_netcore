@@ -1,12 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.Linq;
-using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
-using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Services.Storages.Model;
+using ZIKM.Server.Infrastructure;
+using ZIKM.Server.Infrastructure.Interfaces;
+using ZIKM.Server.Services.Storages.Model;
+using ZIKM.Server.Utils;
 
-namespace ZIKM.Services.Authorization {
+namespace ZIKM.Server.Services.Authorization {
     /// <summary>
     /// Database user authorization storage
     /// </summary>
@@ -14,14 +15,12 @@ namespace ZIKM.Services.Authorization {
 
         protected StorageContext _db = IoC.GetService<StorageContext>();
 
-        public UserDatabaseStorage() { }
-
         public ResponseData SingIn(string login, string password) {
             var user = _db.Users.Include(obj => obj.Passwords).FirstOrDefault(u => u.Name == login);
 
             if (user == null) {
                 // No user in data
-                Logger.ToLogAll(LogMessages.NotFound(login));
+                Logger.LogAll(LogMessages.NotFound(login));
                 return new ResponseData(StatusCode.BadData, Messages.NotFound(login));
             }
 
@@ -30,16 +29,16 @@ namespace ZIKM.Services.Authorization {
                 #region User's spent all passwords
                 switch (login) {
                     case "Master":
-                        Logger.ToLogAll(LogMessages.MasterBlocked);
+                        Logger.LogAll(LogMessages.MasterBlocked);
                         return new ResponseData(StatusCode.Blocked, Messages.MasterBlocked);
                     case "Senpai":
-                        Logger.ToLogAll(LogMessages.SempaiBlocked);
+                        Logger.LogAll(LogMessages.SempaiBlocked);
                         return new ResponseData(StatusCode.Blocked, Messages.SempaiBlocked);
                     case "Kouhai":
-                        Logger.ToLogAll(LogMessages.KouhaiBlocked);
+                        Logger.LogAll(LogMessages.KouhaiBlocked);
                         return new ResponseData(StatusCode.Blocked, Messages.KouhaiBlocked);
                     default:
-                        Logger.ToLogAll(LogMessages.Blocked(login));
+                        Logger.LogAll(LogMessages.Blocked(login));
                         return new ResponseData(StatusCode.Blocked, Messages.Blocked);
                 }
                 #endregion
@@ -53,12 +52,12 @@ namespace ZIKM.Services.Authorization {
             else {
                 if (user.Passwords.Count(p => !p.IsUsed) == 0) {
                     // User's spent last password 
-                    Logger.ToLogAll(LogMessages.Blocked(login));
+                    Logger.LogAll(LogMessages.Blocked(login));
                     return new ResponseData(StatusCode.Blocked, Messages.Blocked);
                 }
                 else {
                     // User's written wrong password
-                    Logger.ToLogAll(LogMessages.WrongPassword(login));
+                    Logger.LogAll(LogMessages.WrongPassword(login));
                     return new ResponseData(StatusCode.BadData, Messages.TryAgain);
                 }
             }

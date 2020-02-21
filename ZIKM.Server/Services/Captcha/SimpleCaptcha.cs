@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
-using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Server.Infrastructure.Interfaces;
 
-namespace ZIKM.Services.Captcha {
+namespace ZIKM.Server.Services.Captcha {
     /// <summary>
     /// Simple captcha form perpeared .jpg files
     /// </summary>
@@ -15,7 +15,7 @@ namespace ZIKM.Services.Captcha {
         /// </summary>
         public SimpleCaptcha() {
             if (Directory.GetFiles(_path).Length == 0) {
-                throw new Exception("Files for simple captcha class not found.");
+                throw new Exception("Files for simple captcha not found.");
             }
         }
 

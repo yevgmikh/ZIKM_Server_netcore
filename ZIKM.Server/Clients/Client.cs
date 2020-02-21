@@ -1,13 +1,14 @@
 using System;
-using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
-using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Servers.Providers;
+using ZIKM.Server.Infrastructure;
+using ZIKM.Server.Infrastructure.Interfaces;
+using ZIKM.Server.Servers.Providers;
+using ZIKM.Server.Utils;
 
-namespace ZIKM.Clients {
+namespace ZIKM.Server.Clients {
     /// <summary>
-    /// Client object for working with data
+    /// <see cref="Client"/> object for working with data
     /// </summary>
     abstract class Client {
         protected readonly IStorage storage;
@@ -25,7 +26,7 @@ namespace ZIKM.Clients {
         protected abstract string EndLog { get; set; }
 
         /// <summary>
-        /// Create client object
+        /// Create <see cref="Client"/> object
         /// </summary>
         /// <param name="provider">Provider for sending data</param>
         /// <param name="level">User's permission level</param>
@@ -49,7 +50,7 @@ namespace ZIKM.Clients {
             }
             else{
                 Provider.SendResponse(new ResponseData(StatusCode.SessionLost, "SessionID incorrect. Force closing session."));
-                Logger.ToLogAll("SessionID incorrect");
+                Logger.LogAll("SessionID incorrect");
                 return false;
             }
         }
@@ -116,7 +117,7 @@ namespace ZIKM.Clients {
 
                     default:
                         Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadRequest, "Invalid operation"));
-                        Logger.ToLogAll("Invalid operation");
+                        Logger.LogAll("Invalid operation");
                         break;
                 }
             }
@@ -159,12 +160,12 @@ namespace ZIKM.Clients {
 
                     case MainOperation.EndSession:
                         Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadData, EndMessage));
-                        Logger.ToLog(EndLog);
+                        Logger.Log(EndLog);
                         return;
 
                     default:
                         Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadRequest, $"Invalid operation"));
-                        Logger.ToLogAll("Invalid operation");
+                        Logger.LogAll("Invalid operation");
                         break;
                 }
             }

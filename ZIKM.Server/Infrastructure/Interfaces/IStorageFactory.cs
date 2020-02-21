@@ -1,4 +1,4 @@
-﻿namespace ZIKM.Infrastructure.Interfaces {
+﻿namespace ZIKM.Server.Infrastructure.Interfaces {
     /// <summary>
     /// Storage factory
     /// </summary>

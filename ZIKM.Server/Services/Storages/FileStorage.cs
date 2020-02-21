@@ -2,38 +2,44 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
-using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Server.Infrastructure;
+using ZIKM.Server.Infrastructure.Interfaces;
+using ZIKM.Server.Utils;
+using static System.IO.Path;
 
-namespace ZIKM.Services.Storages{
+namespace ZIKM.Server.Services.Storages{
     /// <summary>
     /// File storage of data
     /// </summary>
     class FileStorage : IStorage {
-        private static readonly string _rootPath = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data");
-        private static readonly IPermissionsLevel permissions = new PermissionData();
-        private static readonly Dictionary<string, int> _permissions = new Dictionary<string, int>(permissions.Levels);
+        private static readonly string _rootPath = Combine(Directory.GetCurrentDirectory(), "Data");
+        private static readonly Dictionary<string, int> _permissions = new Dictionary<string, int>() {
+            { Combine(Directory.GetCurrentDirectory(), "Data", "1"), 1 },
+            { Combine(Directory.GetCurrentDirectory(), "Data", "2"), 2 },
+            { Combine(Directory.GetCurrentDirectory(), "Data", "3"), 3 },
+            { Combine(Directory.GetCurrentDirectory(), "Data", "4"), 4 }
+        };
 
         static FileStorage() {
             // Adding default files
-            Directory.CreateDirectory(System.IO.Path.Combine(_rootPath, "1"));
-            Directory.CreateDirectory(System.IO.Path.Combine(_rootPath, "2"));
-            Directory.CreateDirectory(System.IO.Path.Combine(_rootPath, "3"));
-            Directory.CreateDirectory(System.IO.Path.Combine(_rootPath, "4"));
+            Directory.CreateDirectory(Combine(_rootPath, "1"));
+            Directory.CreateDirectory(Combine(_rootPath, "2"));
+            Directory.CreateDirectory(Combine(_rootPath, "3"));
+            Directory.CreateDirectory(Combine(_rootPath, "4"));
             
-            if (!File.Exists(System.IO.Path.Combine(_rootPath, "1", "file.txt")))
-                using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(_rootPath, "1", "file.txt"), true))
+            if (!File.Exists(Combine(_rootPath, "1", "file.txt")))
+                using (StreamWriter writer = new StreamWriter(Combine(_rootPath, "1", "file.txt"), true))
                     writer.WriteLine("some text");
-            if (!File.Exists(System.IO.Path.Combine(_rootPath, "2", "some.txt")))
-                using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(_rootPath, "2", "some.txt"), true))
+            if (!File.Exists(Combine(_rootPath, "2", "some.txt")))
+                using (StreamWriter writer = new StreamWriter(Combine(_rootPath, "2", "some.txt"), true))
                     writer.WriteLine("some thing");
-            if (!File.Exists(System.IO.Path.Combine(_rootPath, "3", "Plans.txt")))
-                using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(_rootPath, "3", "Plans.txt"), true))
+            if (!File.Exists(Combine(_rootPath, "3", "Plans.txt")))
+                using (StreamWriter writer = new StreamWriter(Combine(_rootPath, "3", "Plans.txt"), true))
                     writer.WriteLine("some plans");
-            if (!File.Exists(System.IO.Path.Combine(_rootPath, "4", "Reports.txt")))
-                using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(_rootPath, "4", "Reports.txt"), true))
+            if (!File.Exists(Combine(_rootPath, "4", "Reports.txt")))
+                using (StreamWriter writer = new StreamWriter(Combine(_rootPath, "4", "Reports.txt"), true))
                     writer.WriteLine("some reports");
         }
 
@@ -47,7 +53,7 @@ namespace ZIKM.Services.Storages{
         /// <summary>
         /// Current directory
         /// </summary>
-        private string Path { get; set; } = System.IO.Path.Combine(Directory.GetCurrentDirectory(), "Data");
+        private string Path { get; set; } = Combine(Directory.GetCurrentDirectory(), "Data");
         /// <summary>
         /// Permission status of file(opened folder)
         /// </summary>
@@ -66,7 +72,7 @@ namespace ZIKM.Services.Storages{
 
         #region Helpers
         private ResponseData PermissionError() {
-            Logger.ToLogAll(LogMessages.NoAccess(_user));
+            Logger.LogAll(LogMessages.NoAccess(_user));
             return new ResponseData(StatusCode.NoAccess, Messages.NoAccess);
         }
         #endregion
@@ -88,7 +94,7 @@ namespace ZIKM.Services.Storages{
                 if (Directory.GetFiles(Path).Select(i => new FileInfo(i).Name).Contains(name))
                 {
                     fileName = name;
-                    Logger.ToLog(LogMessages.FileOpened(_user, fileName));
+                    Logger.Log(LogMessages.FileOpened(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.FileOpened(fileName));
                 }
                 else
@@ -104,10 +110,10 @@ namespace ZIKM.Services.Storages{
                 // Check name folder
                 if (Directory.GetDirectories(Path).Select(i => new DirectoryInfo(i).Name).Contains(path)){
                     // Check permissions
-                    int code = _permissions[System.IO.Path.Combine(Path, path)];
+                    int code = _permissions[Combine(Path, path)];
                     if (code >= _level - 1 && code <= _level + 1){
                         // Opening folder
-                        Path = System.IO.Path.Combine(Path, path);
+                        Path = Combine(Path, path);
                         Code = code;
                         return new ResponseData(StatusCode.Success, Messages.FolderOpened(path));
                     }
@@ -143,13 +149,13 @@ namespace ZIKM.Services.Storages{
             // Check permisions
             if ((Code + 1) == _level || Code == _level){
                 try{
-                    var texts = File.ReadAllText(System.IO.Path.Combine(Path, $"{fileName}"));
-                    Logger.ToLog(LogMessages.FileRead(_user, fileName));
+                    var texts = File.ReadAllText(Combine(Path, $"{fileName}"));
+                    Logger.Log(LogMessages.FileRead(_user, fileName));
                     return new ResponseData(StatusCode.Success, $"{texts}");
                 }
                 catch (Exception e){
-                    Logger.ToLogAll(LogMessages.ReadError(_user, fileName, e));
-                    return new ResponseData(StatusCode.ServerError, Messages.ReadError(e));
+                    Logger.LogError(LogMessages.ReadError(_user, fileName, e));
+                    return new ResponseData(StatusCode.ServerError, Messages.ReadError);
                 }
 
             }
@@ -164,15 +170,15 @@ namespace ZIKM.Services.Storages{
             // Check permisions
             if ((Code - 1) == _level || Code == _level){
                 try{
-                    using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(Path, $"{fileName}"), true))
+                    using (StreamWriter writer = new StreamWriter(Combine(Path, $"{fileName}"), true))
                         writer.WriteLine(text);
 
-                    Logger.ToLog(LogMessages.Written(_user, fileName));
+                    Logger.Log(LogMessages.Written(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.Written);
                 }
                 catch (Exception e){
-                    Logger.ToLogAll(LogMessages.WriteError(_user, fileName, e));
-                    return new ResponseData(StatusCode.ServerError, Messages.WriteError(e));
+                    Logger.LogError(LogMessages.WriteError(_user, fileName, e));
+                    return new ResponseData(StatusCode.ServerError, Messages.WriteError);
                 }
             }
             else
@@ -188,15 +194,15 @@ namespace ZIKM.Services.Storages{
                 // Check permisions
                 try
                 {
-                    using (StreamWriter writer = new StreamWriter(System.IO.Path.Combine(Path, $"{fileName}"), false))
+                    using (StreamWriter writer = new StreamWriter(Combine(Path, $"{fileName}"), false))
                         writer.WriteLine(text);
 
-                    Logger.ToLog(LogMessages.Updated(_user, fileName));
+                    Logger.Log(LogMessages.Updated(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.Updated);
                 }
                 catch (Exception e){
-                    Logger.ToLogAll(LogMessages.EditError(_user, fileName, e));
-                    return new ResponseData(StatusCode.ServerError, Messages.EditError(e));
+                    Logger.LogError(LogMessages.EditError(_user, fileName, e));
+                    return new ResponseData(StatusCode.ServerError, Messages.EditError);
                 }
             }
             else
@@ -209,7 +215,7 @@ namespace ZIKM.Services.Storages{
 
             string name = fileName;
             fileName = null;
-            Logger.ToLog(LogMessages.FileClosed(_user, name));
+            Logger.Log(LogMessages.FileClosed(_user, name));
             return new ResponseData(StatusCode.Success, Messages.FileClosed(name));
         }
 

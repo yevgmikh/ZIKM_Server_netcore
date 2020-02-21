@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using ZIKM.Servers.Providers;
+using ZIKM.Server.Servers.Providers;
+using ZIKM.Server.Utils;
 
-namespace ZIKM.Servers {
+namespace ZIKM.Server.Servers {
     class TCPServer : ServerObject {
         public override void Start() {
             TcpListener server=null;
@@ -11,7 +12,7 @@ namespace ZIKM.Servers {
                 server = new TcpListener(GetLocalIPAddress(), 8000);
  
                 server.Start();
-                Logger.ToLog("TCP server started");
+                Logger.LogInformation("TCP server started");
  
                 while (true) {
                     TcpClient client = server.AcceptTcpClient();
@@ -19,13 +20,13 @@ namespace ZIKM.Servers {
                 }
             }
             catch (Exception ex) {
-                Logger.ToLogAll(ex.Message);
-                Logger.ToLogAll(ex.InnerException?.Message);
+                Logger.LogCritical(ex.Message);
+                Logger.LogCritical(ex.InnerException?.Message);
             }
             finally {
                 if (server != null)
                     server.Stop();
-                Logger.ToLog("Server stoped");
+                Logger.LogInformation("Server stoped");
             }
         }
     }

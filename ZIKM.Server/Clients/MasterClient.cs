@@ -1,9 +1,10 @@
-using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
-using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Server.Infrastructure;
+using ZIKM.Server.Infrastructure.Interfaces;
+using ZIKM.Server.Utils;
 
-namespace ZIKM.Clients {
+namespace ZIKM.Server.Clients {
     /// <summary>
     /// Master client object for working with data
     /// </summary>
@@ -22,7 +23,7 @@ namespace ZIKM.Clients {
         /// </summary>
         public override void StartSession() {
             Provider.SendResponse(new ResponseData(SessionID, StatusCode.Success, Messages.MasterGreeting));
-            Logger.ToLog(LogMessages.MasterLoggedIn);
+            Logger.Log(LogMessages.MasterLoggedIn);
             Session();
         }
     }

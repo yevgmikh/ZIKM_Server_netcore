@@ -1,75 +1,80 @@
 ﻿using System;
+using System.IO;
 using System.Net.Sockets;
 using System.Text.Json;
 using ZIKM.Infrastructure.DataStructures;
-using ZIKM.Infrastructure.Interfaces;
+using ZIKM.Server.Infrastructure.Interfaces;
+using ZIKM.Server.Utils;
 
-namespace ZIKM.Servers.Providers {
+namespace ZIKM.Server.Servers.Providers {
     public class TCPProvider : IProvider {
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
+        private readonly IProtector _protector;
+        private readonly ProviderLogger _logger = ProviderLogger.Instance;
 
         public TCPProvider(TcpClient client) {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             _stream = _client.GetStream();
-        }
-
-        /// <summary>
-        /// Send response to client
-        /// </summary>
-        /// <param name="response">Response data</param>
-        public void SendResponse(ResponseData response) {
-            byte[] data = JsonSerializer.SerializeToUtf8Bytes(response);
-            _stream.Write(data, 0, data.Length);
-            Logger.ToLogProvider(data, data.Length);
-        }
-
-        /// <summary>
-        /// Send captcha to client
-        /// </summary>
-        /// <param name="fileData">Image to send</param>
-        public void SendCaptcha(byte[] fileData) {
-            _stream.Write(fileData, 0, fileData.Length);
+            _protector = IoC.GetService<IProtector>();
         }
 
         /// <summary>
         /// Read client request
         /// </summary>
-        /// <returns>Data of clint request</returns>
-        private ReadOnlySpan<byte> ReadRequest() {
-            byte[] data = new byte[_client.SendBufferSize];
-            int bytes = _stream.Read(data);
-            Logger.ToLogProvider(data, bytes);
-            return new ReadOnlySpan<byte>(data, 0, bytes);
+        /// <returns>Data of client request</returns>
+        private byte[] ReadRequest() {
+            using MemoryStream ms = new MemoryStream();
+            byte[] data = new byte[1024];
+            do {
+                int numBytesRead = _stream.Read(data, 0, data.Length);
+                ms.Write(data, 0, numBytesRead);
+            } while (_stream.DataAvailable);
+            return ms.ToArray();
         }
 
         /// <summary>
-        /// Get data from client request
+        /// Send data to client
         /// </summary>
-        /// <returns>Data of client's request</returns>
-        public RequestData GetRequest() {
-            return JsonSerializer.Deserialize<RequestData>(ReadRequest());
+        /// <param name="data">Sent data</param>
+        private void SendData(ReadOnlySpan<byte> data) {
+            _stream.Write(data);
         }
 
-        /// <summary>
-        /// Get data from client login-request
-        /// </summary>
-        /// <returns>Data of login request</returns>
+        public void PrepareProtecting() {
+            _protector.ExchangeKey(ReadRequest, SendData);
+        }
+
+        public RequestData GetRequest()
+        {
+            var data = _protector.Decrypt(ReadRequest());
+            _logger.ToLogProvider(data);
+            return JsonSerializer.Deserialize<RequestData>(data);
+        }
+
         public LoginData GetLoginRequest() {
-            return JsonSerializer.Deserialize<LoginData>(ReadRequest());
+            var data = _protector.Decrypt(ReadRequest());
+            _logger.ToLogProvider(data);
+            return JsonSerializer.Deserialize<LoginData>(data);
+        }
+
+        public void SendResponse(ResponseData response) {
+            byte[] data = JsonSerializer.SerializeToUtf8Bytes(response);
+            SendData(_protector.Encrypt(data));
+            _logger.ToLogProvider(data);
+        }
+
+        public void SendCaptcha(byte[] fileData) {
+            SendData(_protector.Encrypt(fileData));
         }
 
         #region IDisposable Support
-        private bool disposedValue = false; // To detect redundant calls
+        private bool disposedValue = false;
 
         protected virtual void Dispose(bool disposing) {
             if (!disposedValue) {
-                if (disposing) {
-                    // TODO: dispose managed state (managed objects).
-                }
+                if (disposing) { }
 
-                // TODO: free unmanaged resources (unmanaged objects) and override a finalizer below.
-                // TODO: set large fields to null.
                 _stream.Close();
                 _client.Close();
 
@@ -77,17 +82,12 @@ namespace ZIKM.Servers.Providers {
             }
         }
 
-        // TODO: override a finalizer only if Dispose(bool disposing) above has code to free unmanaged resources.
         ~TCPProvider() {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(false);
         }
 
-        // This code added to correctly implement the disposable pattern.
         public void Dispose() {
-            // Do not change this code. Put cleanup code in Dispose(bool disposing) above.
             Dispose(true);
-            // TODO: uncomment the following line if the finalizer is overridden above.
             GC.SuppressFinalize(this);
         }
         #endregion

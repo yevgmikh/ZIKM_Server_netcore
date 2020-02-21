@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace ZIKM.Services.Storages.Model {
+namespace ZIKM.Server.Services.Storages.Model {
     public class Folder {
         [Key]
         public int Id { get; set; }

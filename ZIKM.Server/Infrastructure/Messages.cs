@@ -1,6 +1,6 @@
 using System;
 
-namespace ZIKM.Infrastructure {
+namespace ZIKM.Server.Infrastructure {
     internal static class Messages {
         #region Greetings
         internal const string MasterGreeting = "Welcome, Master.";
@@ -39,13 +39,14 @@ namespace ZIKM.Infrastructure {
         internal static string FolderNotFound(string name) => $"Folder \"{name}\" not found";
         internal static string FileNotFound(string name) => $"File \"{name}\" not found";
 
+        internal const string InvalidRequest = "Invalid request";
         internal const string NoAccess = "Not enough rights.";
 
         internal const string NoFile = "File not found";
         internal const string NotOpened = "File not opened";
-        internal static string ReadError(Exception ex) => $"Error reading file:{ex.Message}";
-        internal static string WriteError(Exception ex) => $"Error writing file:{ex.Message}";
-        internal static string EditError(Exception ex) => $"Error editing file:{ex.Message}";
+        internal const string ReadError = "Internal server error while reading file";
+        internal const string WriteError = "Internal server error while writing file";
+        internal const string EditError = "Internal server error while editing file";
         #endregion
     }
 }

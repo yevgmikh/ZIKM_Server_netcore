@@ -4,14 +4,15 @@ using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using ZIKM.Clients;
-using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
-using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Servers.Providers;
+using ZIKM.Server.Clients;
+using ZIKM.Server.Infrastructure;
+using ZIKM.Server.Infrastructure.Interfaces;
+using ZIKM.Server.Servers.Providers;
+using ZIKM.Server.Utils;
 
-namespace ZIKM.Servers {
+namespace ZIKM.Server.Servers {
     abstract class ServerObject {
         protected readonly IAuthorization authorization;
         protected readonly ICaptcha captcha;
@@ -53,21 +54,25 @@ namespace ZIKM.Servers {
         /// </summary>
         /// <param name="provider">Provider for communication with client</param>
         protected void ClientSession(IProvider provider) {
-            while (true) {
-                try {
+            try {
+                provider.PrepareProtecting();
+                while (true) {
                     provider.SendCaptcha(captcha.GetCaptcha(out string captchaCode));
 
                     // Read login request
-                    if (!provider.GetLoginRequest(out LoginData loginData))
+                    bool? result = provider.GetLoginRequest(out LoginData loginData);
+                    if (!result.HasValue)
                         break;
+                    if (!result.Value)
+                        continue;
 
                     var resault = authorization.SingIn(loginData.User, loginData.Password);
                     if (resault.Code == 0) {
-                        if (loginData.Captcha == captchaCode){
+                        if (loginData.Captcha == captchaCode) {
                             GetClient(loginData.User, provider).StartSession();
                         }
                         else {
-                            Logger.ToLogAll(LogMessages.WrongCaptcha(loginData.User));
+                            Logger.LogAll(LogMessages.WrongCaptcha(loginData.User));
                             provider.SendResponse(new ResponseData(StatusCode.BadData, Messages.WrongCaptcha));
                         }
                     }
@@ -75,21 +80,14 @@ namespace ZIKM.Servers {
                         provider.SendResponse(resault);
                     }
                 }
-                catch (IOException ex) {
-                    var inner = ex.InnerException as SocketException;
-                    if (inner?.ErrorCode == 10054) 
-                        Logger.ToLogAll(LogMessages.Disconnected);
-                    else { 
-                        Logger.ToLogAll(ex.Message);
-                        Logger.ToLogAll(ex.InnerException?.Message);
-                    }
-                    break;
-                }
-                catch (Exception ex) {
-                    Logger.ToLogAll(ex.Message);
-                    Logger.ToLogAll(ex.InnerException?.Message);
-                    break;
-                }
+                Logger.LogAll(LogMessages.Disconnected);
+            }
+            catch (IOException ex) when (ex.InnerException is SocketException inner && inner.ErrorCode == 10054) {
+                Logger.LogAll(LogMessages.LostConnection);
+            }
+            catch (Exception ex) {
+                Logger.LogError(ex.Message);
+                Logger.LogError(ex.InnerException?.Message);
             }
             provider.Dispose();
         }

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace ZIKM.Infrastructure.Interfaces{
+namespace ZIKM.Server.Infrastructure.Interfaces{
     public interface IPermissionsLevel{
         /// <summary>
         /// Paths and levels of permissions

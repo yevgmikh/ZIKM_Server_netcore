@@ -2,13 +2,14 @@
 using System;
 using System.Linq;
 using System.Text;
-using ZIKM.Infrastructure;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
-using ZIKM.Infrastructure.Interfaces;
-using ZIKM.Services.Storages.Model;
+using ZIKM.Server.Infrastructure;
+using ZIKM.Server.Infrastructure.Interfaces;
+using ZIKM.Server.Services.Storages.Model;
+using ZIKM.Server.Utils;
 
-namespace ZIKM.Services.Storages {
+namespace ZIKM.Server.Services.Storages {
     /// <summary>
     /// Database storage of data
     /// </summary>
@@ -29,7 +30,7 @@ namespace ZIKM.Services.Storages {
 
         #region Helpers
         private ResponseData PermissionError() {
-            Logger.ToLogAll(LogMessages.NoAccess(_user));
+            Logger.LogAll(LogMessages.NoAccess(_user));
             return new ResponseData(StatusCode.NoAccess, Messages.NoAccess);
         }
         #endregion
@@ -43,12 +44,12 @@ namespace ZIKM.Services.Storages {
 
             if ((file.Permission + 1) == _level || file.Permission == _level) {
                 try {
-                    Logger.ToLog(LogMessages.FileRead(_user, fileName));
+                    Logger.Log(LogMessages.FileRead(_user, fileName));
                     return new ResponseData(StatusCode.Success, Encoding.UTF8.GetString(file.Data));
                 }
                 catch (Exception ex) {
-                    Logger.ToLogAll(LogMessages.ReadError(_user, fileName, ex));
-                    return new ResponseData(StatusCode.ServerError, Messages.ReadError(ex));
+                    Logger.LogError(LogMessages.ReadError(_user, fileName, ex));
+                    return new ResponseData(StatusCode.ServerError, Messages.ReadError);
                 }
             }
             else
@@ -71,12 +72,12 @@ namespace ZIKM.Services.Storages {
                     file.Data = data;
                     _db.SaveChanges();
 
-                    Logger.ToLog(LogMessages.Written(_user, fileName));
+                    Logger.Log(LogMessages.Written(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.Written);
                 }
                 catch (Exception ex) {
-                    Logger.ToLogAll(LogMessages.WriteError(_user, fileName, ex));
-                    return new ResponseData(StatusCode.ServerError, Messages.WriteError(ex));
+                    Logger.LogError(LogMessages.WriteError(_user, fileName, ex));
+                    return new ResponseData(StatusCode.ServerError, Messages.WriteError);
                 }
             }
             else
@@ -94,13 +95,13 @@ namespace ZIKM.Services.Storages {
                     file.Data = Encoding.UTF8.GetBytes(text);
                     _db.SaveChanges();
 
-                    Logger.ToLog(LogMessages.Updated(_user, fileName));
+                    Logger.Log(LogMessages.Updated(_user, fileName));
                     return new ResponseData(StatusCode.Success, Messages.Updated);
                 }
                 catch (Exception ex)
                 {
-                    Logger.ToLogAll(LogMessages.EditError(_user, fileName, ex));
-                    return new ResponseData(StatusCode.ServerError, Messages.EditError(ex));
+                    Logger.LogError(LogMessages.EditError(_user, fileName, ex));
+                    return new ResponseData(StatusCode.ServerError, Messages.EditError);
                 }
             }
             else
@@ -113,7 +114,7 @@ namespace ZIKM.Services.Storages {
 
             string name = fileName;
             fileName = null;
-            Logger.ToLog(LogMessages.FileClosed(_user, name));
+            Logger.Log(LogMessages.FileClosed(_user, name));
             return new ResponseData(StatusCode.Success, Messages.FileClosed(name));
         }
         #endregion
@@ -134,7 +135,7 @@ namespace ZIKM.Services.Storages {
 
             if (file.Permission >= _level - 1 && file.Permission <= _level + 1) {
                 fileName = name;
-                Logger.ToLog(LogMessages.FileOpened(_user, fileName));
+                Logger.Log(LogMessages.FileOpened(_user, fileName));
                 return new ResponseData(StatusCode.Success, Messages.FileOpened(name));
             }
             return PermissionError();
@@ -148,7 +149,7 @@ namespace ZIKM.Services.Storages {
 
             if (folder.Permission >= _level - 1 && folder.Permission <= _level + 1) {
                 folderId = folder.Id;
-                Logger.ToLog(LogMessages.FolderOpened(_user, name));
+                Logger.Log(LogMessages.FolderOpened(_user, name));
                 return new ResponseData(StatusCode.Success, Messages.FolderOpened(name));
             }
             return PermissionError();

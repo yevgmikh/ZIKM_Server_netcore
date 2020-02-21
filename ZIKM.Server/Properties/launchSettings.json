@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "ZIKM.Server": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "Environment": "Development"
+      }
+    }
+  }
+}

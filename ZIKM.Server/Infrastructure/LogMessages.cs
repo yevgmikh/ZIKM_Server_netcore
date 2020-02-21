@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace ZIKM.Infrastructure {
+namespace ZIKM.Server.Infrastructure {
     internal static class LogMessages {
         #region Logins
         internal const string MasterLoggedIn = "Master here";
@@ -10,6 +10,7 @@ namespace ZIKM.Infrastructure {
         #endregion
 
         #region Authorization
+        internal const string KeyExchange = "Keys exchanged";
         internal static string WrongPassword(string name) => $"{name} errored";
         internal static string WrongCaptcha(string name) => $"{name} wrote wrong captcha code";
         internal static string Blocked(string name) => $"{name} blocked";
@@ -19,7 +20,8 @@ namespace ZIKM.Infrastructure {
         internal const string SempaiBlocked = "Impostor";
         internal const string KouhaiBlocked = "Liar";
 
-        internal const string Disconnected = "Lost connection to client";
+        internal const string Disconnected = "Client disconnected";
+        internal const string LostConnection = "Lost connection to client";
         #endregion
 
         #region Logouts
@@ -37,6 +39,7 @@ namespace ZIKM.Infrastructure {
         internal static string Updated(string user, string name) => $"File \"{name}\" edited by {user}";
         internal static string FileClosed(string user, string name) => $"{user} close file \"{name}\"";
 
+        internal const string InvalidRequest = "Invalid request";
         internal static string NoAccess(string user) => $"{user} has not enough rights";
 
         internal static string ReadError(string user, string name, Exception ex) => $"{user} has error while reading file \"{name}\":{ex.Message}";

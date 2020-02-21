@@ -1,13 +1,15 @@
 ﻿using System;
 using ZIKM.Infrastructure.DataStructures;
 
-namespace ZIKM.Infrastructure.Interfaces {
+namespace ZIKM.Server.Infrastructure.Interfaces {
+    /// <summary>
+    /// Sends data to client
+    /// </summary>
     public interface IProvider : IDisposable {
         /// <summary>
-        /// Send response to client
+        /// Exchange cryptography keys with the client
         /// </summary>
-        /// <param name="response">Response data</param>
-        void SendResponse(ResponseData response);
+        void PrepareProtecting();
         /// <summary>
         /// Get data from client request
         /// </summary>
@@ -18,6 +20,11 @@ namespace ZIKM.Infrastructure.Interfaces {
         /// </summary>
         /// <returns>Data of login request</returns>
         LoginData GetLoginRequest();
+        /// <summary>
+        /// Send response to client
+        /// </summary>
+        /// <param name="response">Response data</param>
+        void SendResponse(ResponseData response);
         /// <summary>
         /// Send captcha to client
         /// </summary>
