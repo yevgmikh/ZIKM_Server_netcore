@@ -12,7 +12,7 @@ using ZIKM.Server.Services.Protectors;
 using ZIKM.Server.Services.Storages.Factories;
 using ZIKM.Server.Services.Storages.Model;
 
-namespace ZIKM.Server.Utils {
+namespace ZIKM.Server.Utils.StartupUtils {
     /// <summary>
     /// Setup default services
     /// </summary>
@@ -34,6 +34,13 @@ namespace ZIKM.Server.Utils {
             if (Environment.GetEnvironmentVariable("Environment") == "Development") {
                 configurationBuilder.AddUserSecrets<Startup>();
             }
+            else {
+                Logger.LogInformation($"Start loading encyption keys");
+                Configuration = configurationBuilder.Build();
+                string address = Environment.GetEnvironmentVariable("KeySource") ?? Configuration["KeySource"];
+                configurationBuilder.AddInMemoryCollection(new KeyLoader(address, new AesRsaProtector()).GetKeys());
+                Logger.LogInformation($"Encyption keys loaded");
+            }
             Configuration = configurationBuilder.Build();
 
             IServiceCollection services = new ServiceCollection();
@@ -53,6 +60,7 @@ namespace ZIKM.Server.Utils {
 
                     services.AddSingleton<IAuthorization, UserFileStorage>();
                     services.AddSingleton<IStorageFactory, FileStorageFactory>();
+                    Logger.LogWarning("Password hashing disabled in this configuration");
                     break;
 
                 case Storage.InternalDB:
@@ -78,6 +86,7 @@ namespace ZIKM.Server.Utils {
 
             services.AddSingleton<IAuthorization, UserDatabaseStorage>();
             services.AddSingleton<IStorageFactory, DatabaseStorageFactory>();
+            Logger.LogInformation("Password hashing enabled");
         }
 
         private string GetInternalConnectionString() {

@@ -6,6 +6,7 @@ services:
     restart: always
     environment:
       Storage: Files
+      KeySource: Start-some-source-and-set-address
     volumes: 
       - ./AppData/Data:/app/Data
       - ./AppData/Captchas:/app/Captchas

@@ -1,13 +1,34 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
 namespace ZIKM.Server.Services.Storages.Model {
     class DefaultDbData {
+        private readonly Random random = new Random();
+
+        private string HashPassword(string password) {
+            byte[] salt = new byte[128 / 8];
+            using (var rng = RandomNumberGenerator.Create()) {
+                rng.GetBytes(salt);
+            }
+
+            int iterationCount = random.Next(9000, 11000);
+            string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: password,
+                salt: salt,
+                prf: KeyDerivationPrf.HMACSHA512,
+                iterationCount: iterationCount,
+                numBytesRequested: 256 / 8));
+
+            return $"{hashed}&8/1{iterationCount}&8/1{Convert.ToBase64String(salt)}";
+        }
+
         private void AddFiles(ModelBuilder modelBuilder) {
             var folders = new Folder[] {
                 new Folder { Id = 1, Permission = 0 },
@@ -58,7 +79,7 @@ namespace ZIKM.Server.Services.Storages.Model {
 
                 i = 1;
                 modelBuilder.Entity<UserPassword>().HasData(passwords.SelectMany(user => user.Value, (user, pass) =>
-                    new UserPassword(users.FirstOrDefault(u => u.Name == user.Key)) { Id = i++, Password = pass }).ToArray());
+                    new UserPassword(users.FirstOrDefault(u => u.Name == user.Key)) { Id = i++, Password = HashPassword(pass) }).ToArray());
 
                 File.Delete("Accounts.json");
             }

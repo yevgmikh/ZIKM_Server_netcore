@@ -6,6 +6,7 @@ services:
     restart: always
     environment:
       Storage: InternalDB
+      KeySource: Start-some-source-and-set-address
     volumes: 
       - ./AppData/Data:/app/DB
       - ./Logs:/app/Logs

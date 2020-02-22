@@ -18,7 +18,9 @@ services:
     environment:
         Storage: ExternalDB
         Server: db
+        # End encrypt me! -_-
         Password: CHANGE-ME-BEFORE-RUN
+        KeySource: Start-some-source-and-set-address
     volumes: 
       - ./Logs:/app/Logs
     ports:

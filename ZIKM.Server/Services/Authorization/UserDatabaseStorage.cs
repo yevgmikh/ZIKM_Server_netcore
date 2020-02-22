@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
@@ -14,6 +16,24 @@ namespace ZIKM.Server.Services.Authorization {
     internal class UserDatabaseStorage : IAuthorization {
 
         protected StorageContext _db = IoC.GetService<StorageContext>();
+
+        /// <summary>
+        /// Compare password and hashed password
+        /// </summary>
+        /// <param name="password">Password</param>
+        /// <param name="hashed">Hashed password</param>
+        /// <returns>The result of the comparison</returns>
+        private bool CheckPassword(string password, string hashed) {
+            var parts = hashed.Split("&8/1");
+            password = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+                password: password,
+                salt: Convert.FromBase64String(parts[2]),
+                prf: KeyDerivationPrf.HMACSHA512,
+                iterationCount: int.Parse(parts[1]),
+                numBytesRequested: 256 / 8));
+
+            return password == parts[0];
+        }
 
         public ResponseData SingIn(string login, string password) {
             var user = _db.Users.Include(obj => obj.Passwords).FirstOrDefault(u => u.Name == login);
@@ -46,7 +66,7 @@ namespace ZIKM.Server.Services.Authorization {
             currentPassword.IsUsed = true;
             _db.SaveChanges();
 
-            if (currentPassword.Password == password) {
+            if (CheckPassword(password, currentPassword.Password)) {
                 return new ResponseData();
             }
             else {

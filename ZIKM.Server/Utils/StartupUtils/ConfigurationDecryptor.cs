@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 
-namespace ZIKM.Server.Utils {
+namespace ZIKM.Server.Utils.StartupUtils {
     /// <summary>
     /// Decrypts configuration properties
     /// </summary>

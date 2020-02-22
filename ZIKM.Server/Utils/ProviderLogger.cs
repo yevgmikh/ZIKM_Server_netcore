@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
 
 namespace ZIKM.Server.Utils {
     class ProviderLogger {
@@ -33,7 +34,8 @@ namespace ZIKM.Server.Utils {
         /// </summary>
         /// <param name="data">Log entry</param>
         public void ToLogProvider(ReadOnlySpan<byte> data) {
-            using FileStream stream = new FileStream(Path.Combine(logProviderPath, $"{DateTime.Today.ToString("dd-MM-yyyy")}.log"), FileMode.OpenOrCreate);
+            using FileStream stream = new FileStream(Path.Combine(logProviderPath, $"{DateTime.Today.ToString("dd-MM-yyyy")}.log"), FileMode.Append);
+            stream.Write(Encoding.UTF8.GetBytes($"{DateTime.Now.ToString()} : "));
             using AesManaged aesAlg = new AesManaged {
                 Key = key,
                 IV = vector
@@ -45,6 +47,8 @@ namespace ZIKM.Server.Utils {
             csEncrypt.FlushFinalBlock();
 
             stream.Write(msEncrypt.ToArray());
+            // Add new line(\n)
+            stream.Write(new byte[] { 10 });
         }
     }
 }
