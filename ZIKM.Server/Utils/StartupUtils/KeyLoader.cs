@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.Sockets;
 using System.Text.Json;
 using ZIKM.Server.Infrastructure.Interfaces;
@@ -28,16 +27,16 @@ namespace ZIKM.Server.Utils.StartupUtils {
             var stream = client.GetStream();
 
             byte[] read() {
-                using MemoryStream ms = new MemoryStream();
-                byte[] data = new byte[1024];
-                do {
-                    int numBytesRead = stream.Read(data, 0, data.Length);
-                    ms.Write(data, 0, numBytesRead);
-                } while (stream.DataAvailable);
-                return ms.ToArray();
+                byte[] bufferSize = new byte[4];
+                stream.Read(bufferSize, 0, 4);
+
+                byte[] data = new byte[BitConverter.ToInt32(bufferSize, 0)];
+                stream.Read(data, 0, data.Length);
+                return data;
             };
 
             protector.ExchangeKey(read, (ReadOnlySpan<byte> data) => {
+                stream.Write(BitConverter.GetBytes(data.Length));
                 stream.Write(data);
             });
 

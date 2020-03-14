@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Net.Sockets;
 using System.Text.Json;
 using ZIKM.Infrastructure.DataStructures;
@@ -24,13 +23,13 @@ namespace ZIKM.Server.Servers.Providers {
         /// </summary>
         /// <returns>Data of client request</returns>
         private byte[] ReadRequest() {
-            using MemoryStream ms = new MemoryStream();
-            byte[] data = new byte[1024];
-            do {
-                int numBytesRead = _stream.Read(data, 0, data.Length);
-                ms.Write(data, 0, numBytesRead);
-            } while (_stream.DataAvailable);
-            return ms.ToArray();
+            // Read int value (contains 4 bytes)
+            byte[] bufferSize = new byte[4];
+            _stream.Read(bufferSize, 0, 4);
+
+            byte[] data = new byte[BitConverter.ToInt32(bufferSize, 0)];
+            _stream.Read(data, 0, data.Length);
+            return data;
         }
 
         /// <summary>
@@ -38,6 +37,7 @@ namespace ZIKM.Server.Servers.Providers {
         /// </summary>
         /// <param name="data">Sent data</param>
         private void SendData(ReadOnlySpan<byte> data) {
+            _stream.Write(BitConverter.GetBytes(data.Length));
             _stream.Write(data);
         }
 
