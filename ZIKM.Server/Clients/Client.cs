@@ -3,7 +3,7 @@ using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Infrastructure.Enums;
 using ZIKM.Server.Infrastructure;
 using ZIKM.Server.Infrastructure.Interfaces;
-using ZIKM.Server.Servers.Providers;
+using ZIKM.Server.Servers;
 using ZIKM.Server.Utils;
 
 namespace ZIKM.Server.Clients {

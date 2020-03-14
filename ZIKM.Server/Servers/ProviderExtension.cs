@@ -5,7 +5,7 @@ using ZIKM.Server.Infrastructure;
 using ZIKM.Server.Infrastructure.Interfaces;
 using ZIKM.Server.Utils;
 
-namespace ZIKM.Server.Servers.Providers {
+namespace ZIKM.Server.Servers {
     public static class ProviderExtension {
         /// <summary>
         /// Get user request

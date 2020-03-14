@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
-using ZIKM.Server.Servers.Providers;
 using ZIKM.Server.Utils;
 
-namespace ZIKM.Server.Servers {
+namespace ZIKM.Server.Servers.Providers {
     class TCPServer : ServerObject {
         public override void Start() {
             TcpListener server=null;
