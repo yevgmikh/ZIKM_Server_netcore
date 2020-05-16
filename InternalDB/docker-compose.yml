@@ -1,0 +1,14 @@
+version: '3.1'
+
+services:
+  zikm:
+    build: ./..
+    restart: always
+    environment:
+      Storage: InternalDB
+      KeySource: Start-some-source-and-set-address
+    volumes: 
+      - ./AppData/Data:/app/DB
+      - ./Logs:/app/Logs
+    ports:
+      - 8000:8000

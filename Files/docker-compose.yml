@@ -1,0 +1,15 @@
+version: '3.1'
+
+services:
+  zikm:
+    build: ./..
+    restart: always
+    environment:
+      Storage: Files
+      KeySource: Start-some-source-and-set-address
+    volumes: 
+      - ./AppData/Data:/app/Data
+      - ./AppData/Captchas:/app/Captchas
+      - ./Logs:/app/Logs
+    ports:
+      - 8000:8000
