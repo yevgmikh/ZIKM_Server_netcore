@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -9,7 +8,6 @@ using ZIKM.Infrastructure.Enums;
 using ZIKM.Server.Clients;
 using ZIKM.Server.Infrastructure;
 using ZIKM.Server.Infrastructure.Interfaces;
-using ZIKM.Server.Servers.Providers;
 using ZIKM.Server.Utils;
 
 namespace ZIKM.Server.Servers {
@@ -20,6 +18,49 @@ namespace ZIKM.Server.Servers {
         protected ServerObject() {
             captcha = IoC.GetService<ICaptcha>();
             authorization = IoC.GetService<IAuthorization>();
+
+            Client.HandlerActionError += HandleDisconnect;
+            Client.HandlerFuncBoolError += HandleDisconnect;
+        }
+
+        /// <summary>
+        /// Handle unexpected client's exceptions
+        /// </summary>
+        /// <param name="operation">Tracked operation</param>
+        protected abstract void HandleErrors(Action operation);
+
+        /// <summary>
+        /// Handle unexpected client's losting connection
+        /// </summary>
+        /// <param name="operation">Tracked operation</param>
+        /// <param name="handler">Exception handler</param>
+        protected abstract void HandleDisconnect(Action operation, Action<Exception> handler);
+
+        /// <summary>
+        /// Handle unexpected client's losting connection
+        /// </summary>
+        /// <param name="operation">Tracked operation</param>
+        /// /// <param name="handler">Exception handler</param>
+        protected abstract bool HandleDisconnect(Func<bool> operation, Func<Exception, bool> handler);
+
+        /// <summary>
+        /// Start server
+        /// </summary>
+        public abstract void Start();
+
+        /// <summary>
+        /// Get client by user name
+        /// </summary>
+        /// <param name="name">User name</param>
+        /// <param name="provider">Provider for communication with user</param>
+        /// <returns></returns>
+        private Client GetClient(string name, IProvider provider) {
+            return name switch {
+                "Master" => new MasterClient(provider),
+                "Senpai" => new SenpaiClient(provider),
+                "Kouhai" => new KouhaiClient(provider),
+                _ => new UserClient(provider, name),
+            };
         }
 
         /// <summary>
@@ -35,26 +76,11 @@ namespace ZIKM.Server.Servers {
         }
 
         /// <summary>
-        /// Get client by user name
-        /// </summary>
-        /// <param name="name">User name</param>
-        /// <param name="provider">Provider for communication with user</param>
-        /// <returns></returns>
-        public Client GetClient(string name, IProvider provider) {
-            return name switch {
-                "Master" => new MasterClient(provider),
-                "Senpai" => new SenpaiClient(provider),
-                "Kouhai" => new KouhaiClient(provider),
-                _ => new UserClient(provider, name),
-            };
-        }
-
-        /// <summary>
         /// Start client session
         /// </summary>
         /// <param name="provider">Provider for communication with client</param>
         protected void ClientSession(IProvider provider) {
-            try {
+            HandleErrors(() => {
                 provider.PrepareProtecting();
                 while (true) {
                     provider.SendCaptcha(captcha.GetCaptcha(out string captchaCode));
@@ -81,20 +107,8 @@ namespace ZIKM.Server.Servers {
                     }
                 }
                 Logger.LogAll(LogMessages.Disconnected);
-            }
-            catch (IOException ex) when (ex.InnerException is SocketException inner && inner.ErrorCode == 10054) {
-                Logger.LogAll(LogMessages.LostConnection);
-            }
-            catch (Exception ex) {
-                Logger.LogError(ex.Message);
-                Logger.LogError(ex.InnerException?.Message);
-            }
+            });
             provider.Dispose();
         }
-
-        /// <summary>
-        /// Start server
-        /// </summary>
-        public abstract void Start();
     }
 }

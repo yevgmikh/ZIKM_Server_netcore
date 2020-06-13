@@ -1,4 +1,6 @@
-﻿namespace ZIKM.Server.Infrastructure.Interfaces {
+﻿using ZIKM.Server.Services.Storages;
+
+namespace ZIKM.Server.Infrastructure.Interfaces {
     /// <summary>
     /// Storage factory
     /// </summary>
@@ -9,6 +11,6 @@
         /// <param name="level">Permission level</param>
         /// <param name="user">User name</param>
         /// <returns>Storage of data</returns>
-        IStorage GetStorage(PermissionLevel level, string user);
+        Storage GetStorage(PermissionLevel level, string user);
     }
 }

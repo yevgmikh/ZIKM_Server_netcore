@@ -27,5 +27,14 @@ namespace ZIKM.Server.Infrastructure.Interfaces {
         /// </summary>
         /// <returns>Status and data of operation</returns>
         ResponseData CloseFile();
+        /// <summary>
+        /// Locks file for editing by another user
+        /// </summary>
+        /// <returns>Status of operation</returns>
+        bool LockFile();
+        /// <summary>
+        /// Unlocks file for editing by another user
+        /// </summary>
+        void UnlockFile();
     }
 }

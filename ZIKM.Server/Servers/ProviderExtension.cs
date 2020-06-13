@@ -48,7 +48,6 @@ namespace ZIKM.Server.Servers {
             catch (JsonException) {
                 provider.SendResponse(new ResponseData(StatusCode.BadRequest, Messages.InvalidRequest));
                 Logger.LogAll(LogMessages.InvalidRequest);
-                loginData = new LoginData();
                 return false;
             }
         }

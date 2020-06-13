@@ -1,15 +1,16 @@
 ﻿using System;
+using System.Collections.Generic;
 
-namespace ZIKM.Infrastructure.DataStructures{
-    public struct RequestData{
-        public RequestData(Guid sessionId, int operation, string property){
+namespace ZIKM.Infrastructure.DataStructures {
+    public struct RequestData {
+        public RequestData(Guid sessionId, int operation, Dictionary<string, string> properties){
             SessionId = sessionId;
             Operation = operation;
-            Property = property;
+            Properties = properties;
         }
 
         public Guid SessionId { get; set; }
         public int Operation { get; set; }
-        public string Property { get; set; }
+        public Dictionary<string, string> Properties { get; set; }
     }
 }

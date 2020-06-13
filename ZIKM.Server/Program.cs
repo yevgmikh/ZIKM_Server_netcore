@@ -1,6 +1,6 @@
 ﻿using System;
 using ZIKM.Server.Servers;
-using ZIKM.Server.Servers.Providers;
+using ZIKM.Server.Servers.Tcp;
 using ZIKM.Server.Utils;
 
 namespace ZIKM.Server {
@@ -13,7 +13,6 @@ namespace ZIKM.Server {
             catch(Exception ex) {
                 Logger.LogCritical(ex.Message);
                 Logger.LogCritical(ex.StackTrace);
-                //Exception exception = ex.InnerException;
                 while (ex.InnerException != null) {
                     Logger.LogCritical(ex.InnerException.Message);
                     Logger.LogCritical(ex.InnerException.StackTrace);

@@ -6,7 +6,7 @@ namespace ZIKM.Server.Services.Storages.Factories {
     /// Database storage factory
     /// </summary>
     internal class DatabaseStorageFactory : IStorageFactory {
-        public IStorage GetStorage(PermissionLevel level, string user) {
+        public Storage GetStorage(PermissionLevel level, string user) {
             return new DatabaseStorage((uint)level, user);
         }
     }

@@ -4,6 +4,7 @@ using ZIKM.Infrastructure.Enums;
 using ZIKM.Server.Infrastructure;
 using ZIKM.Server.Infrastructure.Interfaces;
 using ZIKM.Server.Servers;
+using ZIKM.Server.Services.Storages;
 using ZIKM.Server.Utils;
 
 namespace ZIKM.Server.Clients {
@@ -11,7 +12,14 @@ namespace ZIKM.Server.Clients {
     /// <see cref="Client"/> object for working with data
     /// </summary>
     abstract class Client {
-        protected readonly IStorage storage;
+        private const string fileName = "FileName";
+        private const string newName = "NewName";
+        private const string fileData = "FileData";
+
+        public static event Action<Action, Action<Exception>> HandlerActionError;
+        public static event Func<Func<bool>, Func<Exception, bool>, bool> HandlerFuncBoolError;
+
+        protected readonly Storage storage;
 
         protected Guid SessionID { get; set; }
         protected IProvider Provider { get; set; }
@@ -44,7 +52,7 @@ namespace ZIKM.Server.Clients {
         /// </summary>
         /// <param name="userSession">User session ID</param>
         /// <returns>Status of checking</returns>
-        private bool CheckSessionID(Guid userSession){
+        private bool CheckSessionID(Guid userSession) {
             if (userSession == SessionID){
                 return true;
             }
@@ -59,18 +67,50 @@ namespace ZIKM.Server.Clients {
         /// Add session ID to response and send it
         /// </summary>
         /// <param name="data"></param>
-        private void SendResponse(ResponseData data){
+        private void SendResponse(ResponseData data) {
             data.SessionId = SessionID;
             Provider.SendResponse(data);
         }
 
+        private ResponseData FileLocked() {
+            return new ResponseData(StatusCode.NoAccess, Messages.FileLocked);
+        }
+
+        private void LogException(Exception ex) {
+            Logger.LogError(ex.Message);
+            Logger.LogError(ex.StackTrace);
+            while (ex.InnerException != null) {
+                Logger.LogError(ex.InnerException.Message);
+                Logger.LogError(ex.InnerException.StackTrace);
+                ex = ex.InnerException;
+            }
+        }
+
+        private void HandleActionException(Exception ex) {
+            Logger.LogError(LogMessages.SessionError);
+            LogException(ex);
+            SendResponse(new ResponseData(StatusCode.SessionLost, Messages.SessionError));
+        }
+
+        private bool HandleBoolFuncException(Exception ex) {
+            Logger.LogError(LogMessages.FileError);
+            LogException(ex);
+            SendResponse(new ResponseData(StatusCode.ServerError, Messages.FileError));
+            return true;
+        }
+
+        protected void HandleActionError(Action operation) 
+            => HandlerActionError(operation, HandleActionException);
+
+        protected bool HandleFuncBoolError(Func<bool> operation) 
+            => HandlerFuncBoolError(operation, HandleBoolFuncException);
         #endregion
 
         /// <summary>
         /// Operation for changing files
         /// </summary>
         /// <returns>Status of normal ending working with file</returns>
-        protected bool FileChange(){
+        protected bool FileChange() {
             IFileOperation file = storage;
             while (true){
                 // Get request
@@ -86,11 +126,16 @@ namespace ZIKM.Server.Clients {
                         break;
 
                     case FileOperation.Write:
-                        SendResponse(file.WriteToFile(userData.Property));
+                        SendResponse(file.WriteToFile(userData.Properties[fileData]));
                         break;
 
                     case FileOperation.Edit:
                         #region Edit
+                        if (!file.LockFile()) {
+                            SendResponse(FileLocked());
+                            break;
+                        }
+
                         var edit = file.ReadFile();
                         SendResponse(edit);
 
@@ -102,10 +147,11 @@ namespace ZIKM.Server.Clients {
 
                             // Commit changes
                             if (userData.Operation == 3){
-                                SendResponse(storage.ChangeFile(userData.Property));
+                                SendResponse(storage.ChangeFile(userData.Properties[fileData]));
                             }
                             else{
                                 SendResponse(new ResponseData(0, "Canceled"));
+                                file.UnlockFile();
                             }
                         }
                         #endregion
@@ -126,49 +172,64 @@ namespace ZIKM.Server.Clients {
         /// <summary>
         /// Get session for working with files
         /// </summary>
-        protected void Session(){
-            IDirectoryOperation session = storage;
-            while (true){
-                // Get request
-                if (!Provider.GetRequest(out RequestData userData))
-                    continue;
+        protected void Session() {
+            HandleActionError(() => {
+                IDirectoryOperation session = storage;
+                while (true){
+                    // Get request
+                    if (!Provider.GetRequest(out RequestData userData))
+                        continue;
 
-                if (!CheckSessionID(userData.SessionId))
-                    return;
-
-                // Main operations
-                switch ((MainOperation)userData.Operation){
-
-                    case MainOperation.GetAll:
-                        Provider.SendResponse(session.GetAll());
-                        break;
-
-                    case MainOperation.OpenFile:
-                        SendResponse(session.OpenFile(userData.Property));
-                        // Opening file, if incorrect sessionID inside, then close session here
-                        if (!FileChange())
-                            return;
-                        break;
-
-                    case MainOperation.OpenFolder:
-                        SendResponse(session.OpenFolder(userData.Property));
-                        break;
-
-                    case MainOperation.CloseFolder:
-                        SendResponse(session.CloseFolder());
-                        break;
-
-                    case MainOperation.EndSession:
-                        Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadData, EndMessage));
-                        Logger.Log(EndLog);
+                    if (!CheckSessionID(userData.SessionId))
                         return;
 
-                    default:
-                        Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadRequest, $"Invalid operation"));
-                        Logger.LogAll("Invalid operation");
-                        break;
+                    // Main operations
+                    switch ((MainOperation)userData.Operation){
+
+                        case MainOperation.GetAll:
+                            Provider.SendResponse(session.GetAll());
+                            break;
+
+                        case MainOperation.OpenFile:
+                            SendResponse(session.OpenFile(userData.Properties[fileName]));
+                            // Opening file, if incorrect sessionID inside, then close session here
+                            if (!HandleFuncBoolError(FileChange))
+                                return;
+                            break;
+
+                        case MainOperation.AddFile:
+                            SendResponse(session.AddFile(userData.Properties[fileName]));
+                            break;
+
+                        case MainOperation.EditFile:
+                            SendResponse(session
+                                .EditFile(userData.Properties[fileName], userData.Properties[newName]));
+                            break;
+
+                        case MainOperation.RemoveFile:
+                            SendResponse(session.RemoveFile(userData.Properties[fileName]));
+                            break;
+
+                        case MainOperation.OpenFolder:
+                            SendResponse(session.OpenFolder(userData.Properties[fileName]));
+                            break;
+
+                        case MainOperation.CloseFolder:
+                            SendResponse(session.CloseFolder());
+                            break;
+
+                        case MainOperation.EndSession:
+                            Provider.SendResponse(new ResponseData(SessionID, StatusCode.Success, EndMessage));
+                            Logger.Log(EndLog);
+                            return;
+
+                        default:
+                            Provider.SendResponse(new ResponseData(SessionID, StatusCode.BadRequest, $"Invalid operation"));
+                            Logger.LogAll("Invalid operation");
+                            break;
+                    }
                 }
-            }
+            });
         }
 
         /// <summary>

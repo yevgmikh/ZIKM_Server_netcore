@@ -32,19 +32,61 @@ namespace ZIKM.Server.Infrastructure {
         #endregion
 
         #region Main messages
-        internal static string FolderOpened(string user, string name) => $"{user} open folder \"{name}\"";
-        internal static string FileOpened(string user, string name) => $"{user} open file \"{name}\"";
-        internal static string FileRead(string user, string name) => $"File \"{name}\" readed by {user}";
-        internal static string Written(string user, string name) => $"{user} saved to file \"{name}\"";
-        internal static string Updated(string user, string name) => $"File \"{name}\" edited by {user}";
-        internal static string FileClosed(string user, string name) => $"{user} close file \"{name}\"";
+
+        #region Successful operations
+        internal static string FolderOpened(string user, string name) 
+            => $"{user} open folder \"{name}\"";
+        internal static string FolderAdded(string user, string name) 
+            => $"{user} added folder \"{name}\"";
+        internal static string FolderEdited(string user, string name, string newName) 
+            => $"{user} renamed folder \"{name}\" to \"{newName}\"";
+        internal static string FolderRemoved(string user, string name) 
+            => $"{user} removed folder \"{name}\"";
+        internal static string FileOpened(string user, string name) 
+            => $"{user} open file \"{name}\"";
+        internal static string FileAdded(string user, string name) 
+            => $"{user} added file \"{name}\"";
+        internal static string FileEdited(string user, string name, string newName) 
+            => $"{user} renamed file \"{name}\" to \"{newName}\"";
+        internal static string FileRemoved(string user, string name) 
+            => $"{user} removed file \"{name}\"";
+        internal static string FileRead(string user, string name) 
+            => $"File \"{name}\" readed by {user}";
+        internal static string Written(string user, string name) 
+            => $"{user} saved to file \"{name}\"";
+        internal static string Updated(string user, string name) 
+            => $"File \"{name}\" edited by {user}";
+        internal static string FileClosed(string user, string name) 
+            => $"{user} close file \"{name}\"";
+        #endregion
 
         internal const string InvalidRequest = "Invalid request";
         internal static string NoAccess(string user) => $"{user} has not enough rights";
+        internal static string LockedFile(string user) => $"{user} trying edit opened file";
 
-        internal static string ReadError(string user, string name, Exception ex) => $"{user} has error while reading file \"{name}\":{ex.Message}";
-        internal static string WriteError(string user, string name, Exception ex) => $"{user} has error while writing file \"{name}\":{ex.Message}";
-        internal static string EditError(string user, string name, Exception ex) => $"{user} has error while editing file \"{name}\":{ex.Message}";
+        #region Server errors
+        internal static string ReadError(string user, string name, Exception ex) 
+            => $"{user} has error while reading file \"{name}\":{ex.Message}";
+        internal static string WriteError(string user, string name, Exception ex) 
+            => $"{user} has error while writing file \"{name}\":{ex.Message}";
+        internal static string EditError(string user, string name, Exception ex) 
+            => $"{user} has error while editing file \"{name}\":{ex.Message}";
+        internal static string AddFileError(string user, string name, Exception ex) 
+            => $"{user} has error while adding file \"{name}\":{ex.Message}";
+        internal static string EditFileError(string user, string name, Exception ex) 
+            => $"{user} has error while renaming file \"{name}\":{ex.Message}";
+        internal static string RemoveFileError(string user, string name, Exception ex) 
+            => $"{user} has error while removing file \"{name}\":{ex.Message}";
+        internal static string AddFolderError(string user, string name, Exception ex) 
+            => $"{user} has error while adding folder \"{name}\":{ex.Message}";
+        internal static string EditFolderError(string user, string name, Exception ex) 
+            => $"{user} has error while renaming folder \"{name}\":{ex.Message}";
+        internal static string RemoveFolderError(string user, string name, Exception ex) 
+            => $"{user} has error while removing folder \"{name}\":{ex.Message}";
+        internal const string FileError = "Unexpected error while working with file. File closed";
+        internal const string SessionError = "Unexpected error during session. Session ended";
+        #endregion
+
         #endregion
     }
 }

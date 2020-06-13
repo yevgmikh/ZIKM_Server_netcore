@@ -1,5 +1,5 @@
 ﻿namespace ZIKM.Server.Infrastructure{
-    internal enum Storage : int{
+    internal enum StorageType : int{
         Files = 1,
         InternalDB,
         ExternalDB

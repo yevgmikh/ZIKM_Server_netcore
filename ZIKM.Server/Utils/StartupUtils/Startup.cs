@@ -44,7 +44,7 @@ namespace ZIKM.Server.Utils.StartupUtils {
             Configuration = configurationBuilder.Build();
 
             IServiceCollection services = new ServiceCollection();
-            Storage storage = Enum.Parse<Storage>(Environment.GetEnvironmentVariable("Storage") ?? Configuration["Storage"]);
+            StorageType storage = Enum.Parse<StorageType>(Environment.GetEnvironmentVariable("Storage") ?? Configuration["Storage"]);
             Logger.LogInformation($"Storage type: {storage}");
 
             services.AddTransient<IProtector, AesRsaProtector>();
@@ -54,22 +54,23 @@ namespace ZIKM.Server.Utils.StartupUtils {
             Logger.LogInformation($"Provider log prottection enabled");
 
             switch (storage) {
-                case Storage.Files:
+                case StorageType.Files:
                     services.AddSingleton<ICaptcha, SimpleCaptcha>();
                     Logger.LogInformation("Using captcha from prepeared files");
 
                     services.AddSingleton<IAuthorization, UserFileStorage>();
                     services.AddSingleton<IStorageFactory, FileStorageFactory>();
                     Logger.LogWarning("Password hashing disabled in this configuration");
+                    Logger.LogWarning("File managment is limited in this configuration");
                     break;
 
-                case Storage.InternalDB:
+                case StorageType.InternalDB:
                     services.AddDbContext<StorageContext>(options =>
                         options.UseSqlite(GetInternalConnectionString()));
                     AddDBConfigurationComponents(services);
                     break;
 
-                case Storage.ExternalDB:
+                case StorageType.ExternalDB:
                     services.AddDbContext<StorageContext>(options =>
                         options.UseMySql(GetExternalConnectionString()));
                     AddDBConfigurationComponents(services);

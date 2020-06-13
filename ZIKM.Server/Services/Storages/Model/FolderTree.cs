@@ -1,8 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ZIKM.Server.Services.Storages.Model {
     public class FolderTree {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
         [Required]
         public string Name { get; set; }
@@ -20,14 +22,14 @@ namespace ZIKM.Server.Services.Storages.Model {
 
         public FolderTree(string name, Folder parentFolder, Folder folder) {
             Name = name;
-            ParentFolderId = parentFolder?.Id;
-            FolderId = folder?.Id;
+            ParentFolder = parentFolder;
+            Folder = folder;
         }
 
         public FolderTree(string name, Folder parentFolder, DataFile file) {
             Name = name;
-            ParentFolderId = parentFolder?.Id;
-            FileId = file?.Id;
+            ParentFolder = parentFolder;
+            File = file;
         }
     }
 }

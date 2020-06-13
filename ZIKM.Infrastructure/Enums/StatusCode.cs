@@ -5,7 +5,7 @@
         /// </summary>
         ServerError = -3,
         /// <summary>
-        /// Wrong session ID
+        /// Session forcibly ended
         /// </summary>
         SessionLost = -2,
         /// <summary>

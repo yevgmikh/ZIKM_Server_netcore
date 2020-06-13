@@ -50,15 +50,15 @@ namespace ZIKM.Server.Services.Storages.Model {
             modelBuilder.Entity<DataFile>().HasData(files);
 
             modelBuilder.Entity<FolderTree>().HasData(new FolderTree[] {
-                new FolderTree("root", folders[0], folders[0]) { Id = 1 },
-                new FolderTree("User's folder", folders[0], folders[1]) { Id = 2 },
-                new FolderTree("Kouhai's folder", folders[0], folders[2]) { Id = 3 },
-                new FolderTree("Sempai's folder", folders[0], folders[3]) { Id = 4 },
-                new FolderTree("Master folder", folders[0], folders[4]) { Id = 5 },
-                new FolderTree("Some", folders[1], files[0]) { Id = 6 },
-                new FolderTree("Kouhai's file", folders[2], files[1]) { Id = 7 },
-                new FolderTree("Sempai's file", folders[3], files[2]) { Id = 8 },
-                new FolderTree("Master file", folders[4], files[3]) { Id = 9 }
+                new FolderTree { Id = 1, Name = "root", ParentFolderId = folders[0].Id, FolderId = folders[0].Id },
+                new FolderTree { Id = 2, Name = "User's folder", ParentFolderId = folders[0].Id, FolderId = folders[1].Id },
+                new FolderTree { Id = 3, Name = "Kouhai's folder", ParentFolderId = folders[0].Id, FolderId = folders[2].Id },
+                new FolderTree { Id = 4, Name = "Sempai's folder", ParentFolderId = folders[0].Id, FolderId = folders[3].Id },
+                new FolderTree { Id = 5, Name = "Master folder", ParentFolderId = folders[0].Id, FolderId = folders[4].Id },
+                new FolderTree { Id = 6, Name = "Some", ParentFolderId = folders[1].Id, FileId = files[0].Id },
+                new FolderTree { Id = 7, Name = "Kouhai's file", ParentFolderId = folders[2].Id, FileId = files[1].Id },
+                new FolderTree { Id = 8, Name = "Sempai's file", ParentFolderId = folders[3].Id, FileId = files[2].Id },
+                new FolderTree { Id = 9, Name = "Master file", ParentFolderId = folders[4].Id, FileId = files[3].Id }
             });
         }
 

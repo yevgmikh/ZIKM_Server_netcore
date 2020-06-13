@@ -5,7 +5,7 @@ using ZIKM.Infrastructure.DataStructures;
 using ZIKM.Server.Infrastructure.Interfaces;
 using ZIKM.Server.Utils;
 
-namespace ZIKM.Server.Servers.Providers {
+namespace ZIKM.Server.Servers.Tcp {
     public class TCPProvider : IProvider {
         private readonly TcpClient _client;
         private readonly NetworkStream _stream;
